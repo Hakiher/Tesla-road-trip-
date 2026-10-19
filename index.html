@@ -3,9 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Fixes Google Maps Domain Referrer Policy for GitHub Pages -->
-    <meta name="referrer" content="origin">
-    <title>Passage - Tesla Passenger VS Suite</title>
+    <title>Passage - Tesla Route Map & VS Suite</title>
     
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -13,8 +11,8 @@
     <!-- FontAwesome Icons CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Google Fonts: Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Leaflet CSS for Zero-Config OpenStreetMap -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
     <script>
         tailwind.config = {
@@ -40,7 +38,7 @@
             touch-action: manipulation;
         }
 
-        body {
+        body, html {
             background-color: #0A0B0E;
             color: #F3F4F6;
             overflow: hidden;
@@ -51,13 +49,18 @@
             padding: 0;
         }
 
-        #map-container {
+        #map {
             position: absolute;
             inset: 0;
             width: 100vw;
             height: 100vh;
             z-index: 0;
             background: #0A0B0E;
+        }
+
+        /* Dark Mode Styling for OpenStreetMap Tiles */
+        .leaflet-layer, .leaflet-control-zoom-in, .leaflet-control-zoom-out {
+            filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3);
         }
 
         .glass-panel {
@@ -81,10 +84,8 @@
 </head>
 <body class="antialiased">
 
-    <!-- MAP CONTAINER (Google Maps or Fallback Canvas) -->
-    <div id="map-container">
-        <canvas id="map-canvas" style="width:100%; height:100%; display:block;"></canvas>
-    </div>
+    <!-- LEAFLET LIVE ROUTE MAP -->
+    <div id="map"></div>
 
     <!-- TOP TELEMETRY & PLAYER VS SCOREBOARD -->
     <header class="absolute top-3 left-3 right-3 z-30 flex flex-col md:flex-row items-center justify-between gap-2 pointer-events-none">
@@ -92,12 +93,12 @@
             <div class="flex items-center gap-2 text-teslaRed font-bold tracking-wider">
                 <i class="fa-solid fa-car-side text-sm"></i>
                 <span>PASSAGE</span>
-                <span class="text-[10px] bg-teslaRed/20 px-1.5 py-0.5 rounded text-teslaRed border border-teslaRed/30">VS MODE</span>
+                <span class="text-[10px] bg-teslaRed/20 px-1.5 py-0.5 rounded text-teslaRed border border-teslaRed/30">ROUTE MAP</span>
             </div>
             <div class="h-4 w-[1px] bg-white/10 hidden sm:block"></div>
             <div class="flex items-center gap-1.5 text-gray-300">
-                <i class="fa-solid location-icon fa-location-arrow text-teslaCyan"></i>
-                <span id="telemetry-location">Live GPS Ready</span>
+                <i class="fa-solid fa-location-arrow text-teslaCyan"></i>
+                <span id="telemetry-location">Awaiting GPS Lock...</span>
             </div>
             <div class="h-4 w-[1px] bg-white/10 hidden sm:block"></div>
             <div class="flex items-center gap-2">
@@ -189,23 +190,17 @@
                 <div id="scavenger-list" class="space-y-2"></div>
             </div>
 
-            <!-- SECTION 4: CONFIG & MAP API -->
+            <!-- SECTION 4: GPS & CONFIG -->
             <div id="section-setup" class="space-y-4 hidden">
                 <div class="bg-emerald-500/10 border border-emerald-500/30 p-3 rounded-xl text-xs space-y-2">
                     <div class="font-bold text-emerald-400 flex items-center gap-1.5">
                         <i class="fa-solid fa-location-crosshairs"></i>
                         <span>CAR GPS LOCATION SYNC</span>
                     </div>
-                    <button onclick="enableBrowserGps()" class="tab-btn w-full bg-teslaCyan text-black font-bold py-2 rounded-lg hover:bg-cyan-400 transition">
+                    <p class="text-gray-300">Tap below to activate live tracking on your map:</p>
+                    <button onclick="enableBrowserGps()" class="tab-btn w-full bg-teslaCyan text-black font-bold py-2.5 rounded-lg hover:bg-cyan-400 transition">
                         Enable Live GPS Tracking
                     </button>
-                </div>
-
-                <div class="glass-panel p-4 rounded-xl space-y-3 text-xs">
-                    <div class="font-bold text-white text-sm">Optional Google Maps API Key</div>
-                    <p class="text-gray-400">Paste your key below if you want Google Maps vector tiles and place search. Leave blank to use the built-in zero-setup canvas map.</p>
-                    <input id="gmaps-key-input" type="password" placeholder="AIzaSy..." class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white">
-                    <button onclick="saveGoogleKey()" class="tab-btn w-full bg-teslaBlue text-white font-bold py-2.5 rounded-lg hover:bg-blue-600 transition">Save Key & Load Google Maps</button>
                 </div>
             </div>
 
@@ -231,7 +226,7 @@
             </button>
             <button onclick="openTab('setup')" id="nav-btn-setup" class="tab-btn flex-1 py-2.5 rounded-xl flex flex-col items-center gap-1 font-bold text-gray-400">
                 <i class="fa-solid fa-gear text-sm"></i>
-                <span>Config</span>
+                <span>GPS</span>
             </button>
         </div>
     </main>
@@ -242,10 +237,14 @@
         <span>OPEN PASSAGE DOCK</span>
     </button>
 
+    <!-- Leaflet JS CDN -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <script>
         let players = [{ name: 'Alex', score: 100 }, { name: 'Sam', score: 100 }];
         let currentTurnIdx = 0;
-        let userLat = 40.0417, userLng = -86.8986;
+        let map, carMarker, routeLine;
+        let routeCoordinates = [];
 
         function updateLeaderboard() {
             const bar = document.getElementById('header-leaderboard');
@@ -263,16 +262,26 @@
             if ("geolocation" in navigator) {
                 navigator.geolocation.watchPosition(
                     (pos) => {
-                        userLat = pos.coords.latitude;
-                        userLng = pos.coords.longitude;
+                        const lat = pos.coords.latitude;
+                        const lng = pos.coords.longitude;
                         const speedMph = pos.coords.speed ? Math.round(pos.coords.speed * 2.23694) : 0;
+                        
                         document.getElementById('telemetry-speed').innerText = speedMph + ' MPH';
-                        document.getElementById('telemetry-location').innerText = `Lat: ${userLat.toFixed(3)}, Lng: ${userLng.toFixed(3)}`;
+                        document.getElementById('telemetry-location').innerText = `Lat: ${lat.toFixed(3)}, Lng: ${lng.toFixed(3)}`;
                         document.getElementById('telemetry-gps-status').innerHTML = '<i class="fa-solid fa-satellite text-teslaGreen mr-1"></i>GPS LIVE';
+
+                        const latLng = [lat, lng];
+                        carMarker.setLatLng(latLng);
+                        map.setView(latLng, 15);
+
+                        // Record route trail line
+                        routeCoordinates.push(latLng);
+                        routeLine.setLatLngs(routeCoordinates);
                     },
-                    (err) => { alert('GPS access unavailable.'); },
-                    { enableHighAccuracy: true }
+                    (err) => { alert('GPS access unavailable or denied.'); },
+                    { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
                 );
+                alert('Live GPS tracking enabled! Your car marker will follow your route.');
             }
         }
 
@@ -280,6 +289,7 @@
             const names = document.querySelectorAll('.p-input');
             players = [];
             names.forEach(n => {
+                if (n.value.trim()) players.precision({ name: n.value.trim(), score: 100 });
                 if (n.value.trim()) players.push({ name: n.value.trim(), score: 100 });
             });
             if (players.length === 0) players.push({ name: 'Player 1', score: 100 });
@@ -313,14 +323,6 @@
             updateLeaderboard();
         }
 
-        function saveGoogleKey() {
-            const key = document.getElementById('gmaps-key-input').value.trim();
-            if (key) {
-                localStorage.setItem('gmaps_key', key);
-                location.reload();
-            }
-        }
-
         // BINGO & SCAVENGER SETUP
         const states = ['IN', 'IL', 'OH', 'KY', 'MI', 'WI', 'IA', 'MO', 'TN'];
         const bingoGrid = document.getElementById('bingo-grid');
@@ -352,69 +354,33 @@
             updateLeaderboard();
         }
 
-        // MAP INITIALIZER (Canvas Fallback or Google Maps)
+        // INITIALIZE MAP & ROUTE TRAIL
         window.onload = function() {
             updateLeaderboard();
-            const savedKey = localStorage.getItem('gmaps_key');
-            const container = document.getElementById('map-container');
 
-            if (savedKey) {
-                // Load Google Maps if key exists
-                container.innerHTML = `<div id="google-map" style="width:100%; height:100%;"></div>`;
-                const script = document.createElement('script');
-                script.src = `https://maps.googleapis.com/maps/api/js?key=${savedKey}&libraries=places`;
-                script.async = true;
-                script.onload = function() {
-                    const map = new google.maps.Map(document.getElementById('google-map'), {
-                        center: { lat: userLat, lng: userLng },
-                        zoom: 14,
-                        disableDefaultUI: true,
-                        styles: [
-                            { elementType: "geometry", stylers: [{ color: "#0A0B0E" }] },
-                            { elementType: "labels.text.stroke", stylers: [{ color: "#1a1a1a" }] },
-                            { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
-                            { featureType: "road", elementType: "geometry", stylers: [{ color: "#222530" }] },
-                            { featureType: "water", elementType: "geometry", stylers: [{ color: "#030712" }] }
-                        ]
-                    });
-                    new google.maps.Marker({ position: { lat: userLat, lng: userLng }, map: map, title: "Tesla" });
-                };
-                document.head.appendChild(script);
-            } else {
-                // Default high-performance Canvas Map (Zero setup required for sharing!)
-                const canvas = document.getElementById('map-canvas');
-                const ctx = canvas.getContext('2d');
-                
-                function resize() {
-                    canvas.width = window.innerWidth;
-                    canvas.height = window.innerHeight;
-                }
-                window.onresize = resize;
-                resize();
+            // Default startup coordinates (Crawfordsville, IN area)
+            const defaultLat = 40.0417;
+            const defaultLng = -86.8986;
 
-                function draw() {
-                    ctx.fillStyle = '#0A0B0E';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+            map = L.map('map', { zoomControl: false }).setView([defaultLat, defaultLng], 14);
 
-                    ctx.strokeStyle = '#1E293B';
-                    ctx.lineWidth = 14;
-                    ctx.beginPath();
-                    ctx.moveTo(0, canvas.height * 0.6);
-                    ctx.lineTo(canvas.width, canvas.height * 0.4);
-                    ctx.stroke();
+            // OpenStreetMap tile layer styled dark
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+            }).addTo(map);
 
-                    ctx.fillStyle = '#E82127';
-                    ctx.beginPath();
-                    ctx.arc(canvas.width * 0.5, canvas.height * 0.5, 10, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.strokeStyle = '#FFFFFF';
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
+            // Custom Tesla Car Marker
+            const carIcon = L.divIcon({
+                className: 'custom-car-marker',
+                html: '<div style="background-color: #E82127; width: 18px; height: 18px; border: 3px solid #FFFFFF; border-radius: 50%; box-shadow: 0 0 15px #E82127;"></div>',
+                iconSize: [18, 18],
+                iconAnchor: [9, 9]
+            });
 
-                    requestAnimationFrame(draw);
-                }
-                draw();
-            }
+            carMarker = L.marker([defaultLat, defaultLng], { icon: carIcon }).addTo(map);
+
+            // Blue Route Trail Polyline that records your drive path
+            routeLine = L.polyline([], { color: '#3B82F6', weight: 5, opacity: 0.8 }).addTo(map);
         };
     </script>
 </body>
