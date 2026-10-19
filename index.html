@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -35,57 +36,76 @@
     </script>
 
     <style>
+        /* CRITICAL RESET & POINTER INTERACTION CONFIGURATION */
         * {
             box-sizing: border-box;
             user-select: none;
             -webkit-user-select: none;
-            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        body {
+        html, body {
             background-color: #0A0B0E;
             color: #F3F4F6;
-            overflow: hidden;
             font-family: 'Inter', sans-serif;
             width: 100vw;
             height: 100vh;
             margin: 0;
             padding: 0;
+            overflow: hidden;
         }
 
-        #map-container {
+        /* Map background layer explicitly allows clicks through except on controls */
+        #map-wrapper {
             position: absolute;
-            inset: 0;
+            top: 0;
+            left: 0;
             width: 100vw;
             height: 100vh;
             z-index: 0;
-            background: #0A0B0E;
             pointer-events: none;
         }
 
-        .leaflet-map {
-            position: absolute;
-            inset: 0;
+        #leaflet-map {
             width: 100%;
             height: 100%;
+            pointer-events: auto;
+        }
+
+        /* App container sits above map without blocking clicks outside components */
+        #app-layout {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            pointer-events: none; /* Allows interacting with map when touching empty spaces */
+        }
+
+        /* Ensure interactive UI panels capture touch/click */
+        .interactive-panel {
+            pointer-events: auto;
         }
 
         .glass-panel {
-            background: rgba(16, 18, 24, 0.98);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            background: rgba(16, 18, 24, 0.95);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.15);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7);
         }
 
+        /* Bulletproof tab button styling */
         .tab-btn {
             cursor: pointer;
             touch-action: manipulation;
-            -webkit-tap-highlight-color: transparent;
+            transition: all 0.15s ease-in-out;
+            outline: none;
         }
-        
+
         .tab-btn:active {
-            transform: scale(0.95);
+            transform: scale(0.96);
         }
 
         .pulse-red {
@@ -97,293 +117,414 @@
             70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(232, 33, 39, 0); }
             100% { transform: scale(0.98); box-shadow: 0 0 0 0 rgba(232, 33, 39, 0); }
         }
+
+        /* Custom scrollbar for active tab content */
+        .scrollable-content::-webkit-scrollbar {
+            width: 6px;
+        }
+        .scrollable-content::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.2);
+        }
+        .scrollable-content::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.2);
+            border-radius: 3px;
+        }
     </style>
 </head>
-<body class="antialiased">
+<body>
 
-    <!-- FULLSCREEN MAP BACKGROUND -->
-    <div id="map-container">
-        <div id="leaflet-map" class="leaflet-map"></div>
+    <!-- MAP LAYER (Background) -->
+    <div id="map-wrapper">
+        <div id="leaflet-map"></div>
     </div>
 
-    <!-- TOP TELEMETRY & PLAYER VS SCOREBOARD -->
-    <header class="absolute top-3 left-3 right-3 z-30 flex flex-col md:flex-row items-center justify-between gap-2">
-        <div class="glass-panel rounded-xl px-4 py-2 flex items-center gap-4 text-xs font-semibold w-full md:w-auto justify-between md:justify-start">
-            <div class="flex items-center gap-2 text-teslaRed font-bold tracking-wider">
-                <i class="fa-solid fa-car-side text-sm"></i>
-                <span>PASSAGE</span>
-                <span class="text-[10px] bg-teslaRed/20 px-1.5 py-0.5 rounded text-teslaRed border border-teslaRed/30">VS MODE</span>
-            </div>
-            <div class="h-4 w-[1px] bg-white/10 hidden sm:block"></div>
-            <div class="flex items-center gap-1.5 text-gray-300">
-                <i class="fa-solid fa-location-arrow text-teslaCyan"></i>
-                <span id="telemetry-location">I-65 N, Crawfordsville, IN</span>
-            </div>
-            <div class="h-4 w-[1px] bg-white/10 hidden sm:block"></div>
-            <div class="flex items-center gap-2">
-                <span id="telemetry-speed" class="text-teslaGreen font-mono text-sm font-bold">68 MPH</span>
-                <span id="telemetry-battery" class="text-gray-300 font-mono text-xs"><i class="fa-solid fa-battery-three-quarters text-teslaGreen mr-1"></i>78%</span>
-            </div>
-        </div>
-
-        <!-- Leaderboard Bar -->
-        <div class="glass-panel rounded-xl px-4 py-2 flex items-center gap-4 text-xs w-full md:w-auto justify-around">
-            <div class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-blue-500 inline-block"></span>
-                <span class="font-semibold text-gray-200">Front R:</span>
-                <span id="p1-score" class="font-mono text-blue-400 font-bold text-sm">350 pts</span>
-            </div>
-            <div class="text-gray-600 font-bold">VS</div>
-            <div class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-purple-500 inline-block"></span>
-                <span class="font-semibold text-gray-200">Rear L:</span>
-                <span id="p2-score" class="font-mono text-purple-400 font-bold text-sm">280 pts</span>
-            </div>
-            <div class="text-gray-600 font-bold">VS</div>
-            <div class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
-                <span class="font-semibold text-gray-200">Rear R:</span>
-                <span id="p3-score" class="font-mono text-emerald-400 font-bold text-sm">190 pts</span>
-            </div>
-        </div>
-    </header>
-
-    <!-- MAIN UNIFIED FLOATING ACTIVITIES DOCK -->
-    <main id="passage-dock" class="absolute top-20 left-3 bottom-4 z-20 w-[94vw] md:w-[450px] glass-panel rounded-2xl flex flex-col">
-        <!-- Dock Header -->
-        <div class="px-4 py-3 border-b border-white/10 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <i class="fa-solid fa-gamepad text-teslaCyan"></i>
-                <span class="text-xs font-bold uppercase tracking-wider text-gray-300">PASSENGER ACTIVITIES DOCK</span>
-            </div>
-            <span id="active-tab-title" class="text-xs font-bold text-teslaCyan uppercase">VS TRIVIA</span>
-        </div>
-
-        <!-- Activity Body Container -->
-        <div class="flex-1 overflow-y-auto p-4" id="activity-content-container">
-            
-            <!-- SECTION 1: VS SPEED TRIVIA -->
-            <div id="section-trivia" class="space-y-4">
-                <div class="flex items-center justify-between bg-blue-500/10 border border-blue-500/30 p-2.5 rounded-xl">
-                    <div class="flex items-center gap-2 text-xs text-blue-300 font-semibold">
-                        <i class="fa-solid fa-trophy text-amber-400"></i>
-                        <span>CURRENT TURN:</span>
-                        <span id="trivia-turn-player" class="text-white font-bold bg-blue-600 px-2 py-0.5 rounded">Front Right</span>
-                    </div>
-                    <div id="trivia-timer" class="font-mono text-sm font-bold text-amber-400">12s</div>
+    <!-- MAIN INTERACTION LAYER -->
+    <div id="app-layout">
+        
+        <!-- TOP STATUS & LEADERBOARD BAR -->
+        <header class="p-3 w-full flex flex-col md:flex-row items-center justify-between gap-2">
+            <div class="interactive-panel glass-panel rounded-xl px-4 py-2 flex items-center justify-between md:justify-start gap-4 text-xs font-semibold w-full md:w-auto">
+                <div class="flex items-center gap-2 text-teslaRed font-bold tracking-wider">
+                    <i class="fa-solid fa-car-side text-sm"></i>
+                    <span>PASSAGE</span>
+                    <span class="text-[10px] bg-teslaRed/20 px-1.5 py-0.5 rounded text-teslaRed border border-teslaRed/30">TESLA VS</span>
                 </div>
-
-                <div class="glass-panel p-4 rounded-xl border border-white/10">
-                    <div class="text-[10px] text-teslaCyan font-bold uppercase tracking-widest mb-1 flex items-center justify-between">
-                        <span>LOCATION TRIVIA • I-65 CORRIDOR</span>
-                        <span class="text-amber-400 font-mono">+100 PTS</span>
-                    </div>
-                    <p class="text-sm md:text-base font-semibold text-white mb-3">
-                        You are driving near Crawfordsville, IN! Which historic event or famous landmark is associated with this area?
-                    </p>
-                    <div class="grid grid-cols-1 gap-2">
-                        <button onclick="handleTriviaAnswer(true)" class="tab-btn w-full text-left p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-xs font-medium text-gray-200">
-                            A) Ben-Hur author Lew Wallace's Study Museum
-                        </button>
-                        <button onclick="handleTriviaAnswer(false)" class="tab-btn w-full text-left p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-xs font-medium text-gray-200">
-                            B) The birth site of the First Transcontinental Highway
-                        </button>
-                        <button onclick="handleTriviaAnswer(false)" class="tab-btn w-full text-left p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-xs font-medium text-gray-200">
-                            C) Indiana's first EV charging hub built in 1912
-                        </button>
-                        <button onclick="handleTriviaAnswer(false)" class="tab-btn w-full text-left p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-xs font-medium text-gray-200">
-                            D) Indiana Dunes National Park visitor center
-                        </button>
-                    </div>
+                <div class="h-4 w-[1px] bg-white/10 hidden sm:block"></div>
+                <div class="flex items-center gap-1.5 text-gray-300">
+                    <i class="fa-solid fa-location-arrow text-teslaCyan"></i>
+                    <span id="telemetry-location">I-65 N, Crawfordsville, IN</span>
+                </div>
+                <div class="h-4 w-[1px] bg-white/10 hidden sm:block"></div>
+                <div class="flex items-center gap-2">
+                    <span id="telemetry-speed" class="text-teslaGreen font-mono text-sm font-bold">68 MPH</span>
+                    <span id="telemetry-battery" class="text-gray-300 font-mono text-xs"><i class="fa-solid fa-battery-three-quarters text-teslaGreen mr-1"></i>78%</span>
                 </div>
             </div>
 
-            <!-- SECTION 2: STATE BINGO -->
-            <div id="section-bingo" class="space-y-4 hidden">
-                <div class="text-xs text-gray-400 mb-2">Spot license plates out the window! Tap to claim states:</div>
-                <div class="grid grid-cols-3 gap-2" id="bingo-grid">
-                    <!-- Bingo tiles generated by JS -->
+            <!-- SCOREBOARD -->
+            <div class="interactive-panel glass-panel rounded-xl px-4 py-2 flex items-center justify-around gap-4 text-xs w-full md:w-auto">
+                <div class="flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block"></span>
+                    <span class="font-semibold text-gray-300">P1:</span>
+                    <span id="p1-score" class="font-mono text-blue-400 font-bold text-sm">350</span>
+                </div>
+                <div class="text-gray-600 font-bold">|</div>
+                <div class="flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block"></span>
+                    <span class="font-semibold text-gray-300">P2:</span>
+                    <span id="p2-score" class="font-mono text-purple-400 font-bold text-sm">280</span>
+                </div>
+                <div class="text-gray-600 font-bold">|</div>
+                <div class="flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>
+                    <span class="font-semibold text-gray-300">P3:</span>
+                    <span id="p3-score" class="font-mono text-emerald-400 font-bold text-sm">190</span>
                 </div>
             </div>
+        </header>
 
-            <!-- SECTION 3: SCAVENGER HUNT -->
-            <div id="section-scavenger" class="space-y-4 hidden">
-                <div class="text-xs text-gray-400 mb-2">Tap "I SPOT IT FIRST!" when you see these items out the window:</div>
-                <div id="scavenger-list" class="space-y-2">
-                    <!-- Scavenger list generated by JS -->
-                </div>
-            </div>
+        <!-- MAIN FLOATING ACTIVITY CARD -->
+        <main class="flex-1 px-3 pb-3 min-h-0 flex flex-col justify-end md:justify-start">
+            <div class="interactive-panel glass-panel w-full md:w-[480px] h-[calc(100vh-140px)] rounded-2xl flex flex-col overflow-hidden">
+                
+                <!-- TOP TAB BAR -->
+                <nav class="bg-black/60 border-b border-white/10 grid grid-cols-5 p-1 gap-1 text-center font-bold text-[10px] md:text-xs">
+                    <button id="btn-trivia" onclick="switchTab('trivia')" class="tab-btn py-2.5 rounded-lg flex flex-col items-center justify-center gap-1 text-teslaCyan bg-white/10">
+                        <i class="fa-solid fa-bolt text-sm md:text-base"></i>
+                        <span>TRIVIA</span>
+                    </button>
+                    <button id="btn-bingo" onclick="switchTab('bingo')" class="tab-btn py-2.5 rounded-lg flex flex-col items-center justify-center gap-1 text-gray-400 hover:text-white">
+                        <i class="fa-solid fa-border-all text-sm md:text-base"></i>
+                        <span>BINGO</span>
+                    </button>
+                    <button id="btn-scavenger" onclick="switchTab('scavenger')" class="tab-btn py-2.5 rounded-lg flex flex-col items-center justify-center gap-1 text-gray-400 hover:text-white">
+                        <i class="fa-solid fa-eye text-sm md:text-base"></i>
+                        <span>SPOTTER</span>
+                    </button>
+                    <button id="btn-questions" onclick="switchTab('questions')" class="tab-btn py-2.5 rounded-lg flex flex-col items-center justify-center gap-1 text-gray-400 hover:text-white">
+                        <i class="fa-solid fa-brain text-sm md:text-base"></i>
+                        <span>20 Qs</span>
+                    </button>
+                    <button id="btn-setup" onclick="switchTab('setup')" class="tab-btn py-2.5 rounded-lg flex flex-col items-center justify-center gap-1 text-gray-400 hover:text-white">
+                        <i class="fa-solid fa-gear text-sm md:text-base"></i>
+                        <span>SETUP</span>
+                    </button>
+                </nav>
 
-            <!-- SECTION 4: 20 QUESTIONS AI -->
-            <div id="section-questions" class="space-y-4 hidden">
-                <div class="glass-panel p-4 rounded-xl text-center space-y-3">
-                    <div class="text-xs text-teslaCyan font-bold uppercase tracking-wider">AI ROAD TRIP TARGET</div>
-                    <div class="text-base font-bold text-white">Target: Famous US Landmark</div>
-                    <div id="ai-chat-box" class="h-32 bg-black/40 rounded-lg p-2 text-left text-xs overflow-y-auto space-y-1 font-mono text-gray-300 border border-white/5">
-                        <div class="text-teslaCyan">AI: I am thinking of a landmark on your current route...</div>
-                    </div>
-                    <div class="flex gap-2">
-                        <input id="ai-input" type="text" placeholder="Is it made of stone?" class="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-teslaCyan">
-                        <button onclick="submitAiQuestion()" class="tab-btn bg-teslaCyan text-black font-bold px-4 py-2 rounded-lg text-xs">Ask</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- SECTION 5: SETUP & TESLA API -->
-            <div id="section-setup" class="space-y-4 hidden">
-                <div class="bg-emerald-500/10 border border-emerald-500/30 p-3 rounded-xl text-xs space-y-1">
-                    <div class="font-bold text-emerald-400 flex items-center gap-1.5">
-                        <i class="fa-solid fa-shield-halved"></i>
-                        <span>100% TESLA WARRANTY SAFE</span>
-                    </div>
-                    <p class="text-gray-300 leading-relaxed">
-                        Under the federal Magnuson-Moss Warranty Act, accessing read-only telemetry or using official web apps <strong>never voids your Tesla vehicle warranty</strong>.
-                    </p>
-                </div>
-
-                <div class="glass-panel p-4 rounded-xl space-y-3 text-xs">
-                    <div class="font-bold text-white text-sm">Tesla Fleet API Link (Optional)</div>
-                    <p class="text-gray-400">Paste your read-only Tesla access token and vehicle VIN to stream live speed and location:</p>
+                <!-- TAB PANELS CONTAINER -->
+                <div class="flex-1 p-4 overflow-y-auto scrollable-content relative">
                     
-                    <div class="space-y-2">
-                        <div>
-                            <label class="text-[10px] text-gray-400 uppercase font-bold">SSO Access Token</label>
-                            <input id="tesla-token-input" type="password" placeholder="eyJhbGciOiJSUzI1NiIs..." class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-teslaRed">
+                    <!-- TAB 1: VS SPEED TRIVIA -->
+                    <div id="tab-trivia" style="display: block;" class="space-y-4">
+                        <div class="flex items-center justify-between bg-blue-500/10 border border-blue-500/30 p-2.5 rounded-xl">
+                            <div class="flex items-center gap-2 text-xs text-blue-300 font-semibold">
+                                <i class="fa-solid fa-trophy text-amber-400"></i>
+                                <span>CURRENT TURN:</span>
+                                <span id="trivia-turn-player" class="text-white font-bold bg-blue-600 px-2 py-0.5 rounded">Front Passenger</span>
+                            </div>
+                            <div id="trivia-timer" class="font-mono text-sm font-bold text-amber-400">12s</div>
                         </div>
-                        <div>
-                            <label class="text-[10px] text-gray-400 uppercase font-bold">Vehicle VIN</label>
-                            <input id="tesla-vin-input" type="text" placeholder="5YJ3E1EA8MF..." class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-teslaRed">
+
+                        <div class="bg-white/5 p-4 rounded-xl border border-white/10 space-y-3">
+                            <div class="text-[10px] text-teslaCyan font-bold uppercase tracking-widest flex items-center justify-between">
+                                <span>LOCATION TRIVIA • INDIANA I-65</span>
+                                <span class="text-amber-400 font-mono">+100 PTS</span>
+                            </div>
+                            <p id="trivia-question-text" class="text-sm md:text-base font-semibold text-white">
+                                You are traveling through Montgomery County near Crawfordsville! Which famous author and Civil War general wrote 'Ben-Hur' in his study here?
+                            </p>
+                            <div class="grid grid-cols-1 gap-2 pt-2" id="trivia-options-container">
+                                <button onclick="answerTrivia(true)" class="tab-btn w-full text-left p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-xs font-medium text-gray-200 flex items-center gap-2">
+                                    <span class="w-5 h-5 rounded-full bg-white/10 text-center font-bold text-teslaCyan leading-5 text-[10px]">A</span>
+                                    <span>Lew Wallace</span>
+                                </button>
+                                <button onclick="answerTrivia(false)" class="tab-btn w-full text-left p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-xs font-medium text-gray-200 flex items-center gap-2">
+                                    <span class="w-5 h-5 rounded-full bg-white/10 text-center font-bold text-teslaCyan leading-5 text-[10px]">B</span>
+                                    <span>Mark Twain</span>
+                                </button>
+                                <button onclick="answerTrivia(false)" class="tab-btn w-full text-left p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-xs font-medium text-gray-200 flex items-center gap-2">
+                                    <span class="w-5 h-5 rounded-full bg-white/10 text-center font-bold text-teslaCyan leading-5 text-[10px]">C</span>
+                                    <span>James Whitcomb Riley</span>
+                                </button>
+                                <button onclick="answerTrivia(false)" class="tab-btn w-full text-left p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-xs font-medium text-gray-200 flex items-center gap-2">
+                                    <span class="w-5 h-5 rounded-full bg-white/10 text-center font-bold text-teslaCyan leading-5 text-[10px]">D</span>
+                                    <span>Kurt Vonnegut</span>
+                                </button>
+                            </div>
                         </div>
-                        <button onclick="saveTeslaCredentials()" class="tab-btn w-full bg-teslaRed text-white font-bold py-2.5 rounded-lg hover:bg-red-600 transition">Save Credentials & Connect</button>
                     </div>
+
+                    <!-- TAB 2: STATE LICENSE PLATE BINGO -->
+                    <div id="tab-bingo" style="display: none;" class="space-y-3">
+                        <div class="flex items-center justify-between text-xs text-gray-400">
+                            <span>Spot out the window! Tap tile to claim state:</span>
+                            <span class="text-teslaCyan font-bold" id="bingo-count">0 / 9 Found</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2" id="bingo-grid">
+                            <!-- Bingo tiles injected via JS -->
+                        </div>
+                    </div>
+
+                    <!-- TAB 3: SCAVENGER HUNT -->
+                    <div id="tab-scavenger" style="display: none;" class="space-y-3">
+                        <div class="text-xs text-gray-400">First passenger to see it taps "I SPOT IT FIRST!":</div>
+                        <div id="scavenger-list" class="space-y-2">
+                            <!-- Scavenger list injected via JS -->
+                        </div>
+                    </div>
+
+                    <!-- TAB 4: 20 QUESTIONS AI -->
+                    <div id="tab-questions" style="display: none;" class="space-y-3">
+                        <div class="bg-white/5 p-4 rounded-xl border border-white/10 text-center space-y-3">
+                            <div class="text-xs text-teslaCyan font-bold uppercase tracking-wider">AI ROAD TRIP TARGET</div>
+                            <div class="text-sm font-bold text-white">Target Category: Famous US Landmark</div>
+                            <div id="ai-chat-box" class="h-36 bg-black/60 rounded-lg p-3 text-left text-xs overflow-y-auto space-y-2 font-mono text-gray-300 border border-white/10">
+                                <div class="text-teslaCyan">AI: I have picked a landmark along your regional route. Ask me Yes/No questions!</div>
+                            </div>
+                            <div class="flex gap-2">
+                                <input id="ai-input" type="text" placeholder="e.g. Is it made of stone?" class="flex-1 bg-white/10 border border-white/15 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-teslaCyan">
+                                <button onclick="askAiQuestion()" class="tab-btn bg-teslaCyan text-black font-bold px-4 py-2 rounded-lg text-xs hover:bg-cyan-400">Ask</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 5: SETUP & SECURITY INFO -->
+                    <div id="tab-setup" style="display: none;" class="space-y-4">
+                        
+                        <!-- SECURITY GUARANTEE -->
+                        <div class="bg-emerald-500/10 border border-emerald-500/30 p-3.5 rounded-xl text-xs space-y-1.5">
+                            <div class="font-bold text-emerald-400 flex items-center gap-2">
+                                <i class="fa-solid fa-lock text-sm"></i>
+                                <span>100% PRIVATE & LOCAL STORAGE</span>
+                            </div>
+                            <p class="text-gray-300 leading-relaxed text-[11px]">
+                                Your Tesla token and VIN are saved <strong>ONLY</strong> in your browser's private local storage. No data is sent to external servers or third parties.
+                            </p>
+                            <p class="text-gray-400 leading-relaxed text-[10px] pt-1 border-t border-emerald-500/20">
+                                Under federal law (Magnuson-Moss Warranty Act), reading vehicle telemetry via official web browser apps <strong>never voids your Tesla warranty</strong>.
+                            </p>
+                        </div>
+
+                        <!-- CREDENTIAL INPUTS -->
+                        <div class="bg-white/5 p-4 rounded-xl border border-white/10 space-y-3 text-xs">
+                            <div class="font-bold text-white text-sm">Tesla Fleet API Telemetry Sync</div>
+                            
+                            <div class="space-y-2">
+                                <div>
+                                    <label class="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Access Token</label>
+                                    <input id="tesla-token-input" type="password" placeholder="e.g. eyJhbGciOiJSUzI1NiIs..." class="w-full bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-teslaRed mt-1">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Vehicle VIN</label>
+                                    <input id="tesla-vin-input" type="text" placeholder="5YJ3E1EA8MF..." class="w-full bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-teslaRed mt-1">
+                                </div>
+                                
+                                <button onclick="saveTeslaCredentials()" class="tab-btn w-full bg-teslaRed text-white font-bold py-2.5 rounded-lg hover:bg-red-600 transition flex items-center justify-center gap-2 mt-2">
+                                    <i class="fa-solid fa-floppy-disk"></i>
+                                    <span>Save Locally</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- SYSTEM STATUS & RESET -->
+                        <div class="bg-white/5 p-3 rounded-xl border border-white/10 flex items-center justify-between text-xs">
+                            <div>
+                                <span class="text-gray-400 block text-[10px]">LOCAL STORAGE STATUS</span>
+                                <span id="storage-status-text" class="font-bold text-amber-400">No Credentials Saved</span>
+                            </div>
+                            <button onclick="clearSavedCredentials()" class="tab-btn bg-white/10 hover:bg-white/20 text-gray-300 font-bold px-3 py-1.5 rounded-lg text-[11px]">
+                                Clear
+                            </button>
+                        </div>
+
+                    </div>
+
                 </div>
+
             </div>
+        </main>
+    </div>
 
-        </div>
-
-        <!-- Dock Bottom Navigation Tabs -->
-        <div class="p-2 border-t border-white/10 bg-black/60 rounded-b-2xl flex items-center justify-around gap-1 text-[11px]">
-            <button onclick="openTab('trivia')" id="nav-btn-trivia" class="tab-btn flex-1 py-3 rounded-xl flex flex-col items-center gap-1 font-bold text-teslaCyan bg-white/10">
-                <i class="fa-solid fa-bolt text-base"></i>
-                <span>VS Trivia</span>
-            </button>
-            <button onclick="openTab('bingo')" id="nav-btn-bingo" class="tab-btn flex-1 py-3 rounded-xl flex flex-col items-center gap-1 font-bold text-gray-400">
-                <i class="fa-solid fa-border-all text-base"></i>
-                <span>Bingo</span>
-            </button>
-            <button onclick="openTab('scavenger')" id="nav-btn-scavenger" class="tab-btn flex-1 py-3 rounded-xl flex flex-col items-center gap-1 font-bold text-gray-400">
-                <i class="fa-solid fa-eye text-base"></i>
-                <span>Spotter</span>
-            </button>
-            <button onclick="openTab('questions')" id="nav-btn-questions" class="tab-btn flex-1 py-3 rounded-xl flex flex-col items-center gap-1 font-bold text-gray-400">
-                <i class="fa-solid fa-brain text-base"></i>
-                <span>20 Ques</span>
-            </button>
-            <button onclick="openTab('setup')" id="nav-btn-setup" class="tab-btn flex-1 py-3 rounded-xl flex flex-col items-center gap-1 font-bold text-gray-400">
-                <i class="fa-solid fa-gear text-base"></i>
-                <span>Setup</span>
-            </button>
-        </div>
-    </main>
-
+    <!-- JAVASCRIPT LOGIC -->
     <script>
-        // TAB MANAGER
-        function openTab(tabName) {
+        // BULLETPROOF TAB SWITCHER
+        // Direct inline display manipulation guarantees tab switching regardless of CSS framework state
+        function switchTab(tabId) {
             const tabs = ['trivia', 'bingo', 'scavenger', 'questions', 'setup'];
             
             tabs.forEach(tab => {
-                const sec = document.getElementById('section-' + tab);
-                const btn = document.getElementById('nav-btn-' + tab);
+                const panel = document.getElementById('tab-' + tab);
+                const btn = document.getElementById('btn-' + tab);
                 
-                if (tab === tabName) {
-                    sec.classList.remove('hidden');
+                if (tab === tabId) {
+                    panel.style.display = 'block';
                     btn.classList.add('text-teslaCyan', 'bg-white/10');
                     btn.classList.remove('text-gray-400');
                 } else {
-                    sec.classList.add('hidden');
+                    panel.style.display = 'none';
                     btn.classList.remove('text-teslaCyan', 'bg-white/10');
                     btn.classList.add('text-gray-400');
                 }
             });
-
-            document.getElementById('active-tab-title').innerText = tabName.toUpperCase();
         }
 
-        // TRIVIA LOGIC
+        // TAB 1: TRIVIA LOGIC
         let p1Score = 350;
-        function handleTriviaAnswer(isCorrect) {
+        function answerTrivia(isCorrect) {
             if (isCorrect) {
                 p1Score += 100;
-                document.getElementById('p1-score').innerText = p1Score + ' pts';
-                alert('CORRECT! +100 Points!');
+                document.getElementById('p1-score').innerText = p1Score;
+                alert('CORRECT! +100 Points added to P1!');
             } else {
-                alert('Incorrect answer!');
+                alert('Incorrect! Turn passes to next player.');
             }
         }
 
-        // BINGO GENERATOR
-        const states = ['IN', 'IL', 'OH', 'KY', 'MI', 'WI', 'IA', 'MO', 'TN'];
+        // TAB 2: BINGO INITIALIZATION
+        const statesList = ['IN', 'IL', 'OH', 'KY', 'MI', 'WI', 'IA', 'MO', 'TN'];
+        let foundCount = 0;
         const bingoGrid = document.getElementById('bingo-grid');
-        states.forEach(st => {
+        
+        statesList.forEach(st => {
             const btn = document.createElement('button');
-            btn.className = 'tab-btn glass-panel p-4 rounded-xl flex flex-col items-center justify-center font-bold text-sm text-gray-200';
-            btn.innerHTML = `<span class="text-[10px] text-gray-500 font-mono">PLATE</span><span class="text-lg text-white">${st}</span>`;
+            btn.className = 'tab-btn bg-white/5 border border-white/10 p-3 rounded-xl flex flex-col items-center justify-center font-bold text-white hover:bg-white/10';
+            btn.innerHTML = `<span class="text-[9px] text-gray-400 font-mono">PLATE</span><span class="text-base font-black text-teslaCyan">${st}</span>`;
+            
             btn.onclick = function() {
-                this.classList.add('bg-teslaCyan/20', 'border-teslaCyan', 'text-teslaCyan');
+                if (!this.classList.contains('claimed')) {
+                    this.classList.add('claimed', 'bg-emerald-500/20', 'border-emerald-500', 'text-emerald-400');
+                    foundCount++;
+                    document.getElementById('bingo-count').innerText = `${foundCount} / ${statesList.length} Found`;
+                }
             };
             bingoGrid.appendChild(btn);
         });
 
-        // SCAVENGER GENERATOR
+        // TAB 3: SCAVENGER HUNT INITIALIZATION
         const scavItems = ['Wind Turbine', 'Red Barn', 'Semi-Truck carrying cars', 'Water Tower', 'Bridge over river'];
         const scavList = document.getElementById('scavenger-list');
-        scavItems.forEach(item => {
+        
+        scavItems.forEach((item, idx) => {
             const div = document.createElement('div');
-            div.className = 'glass-panel p-3 rounded-xl flex items-center justify-between text-xs';
+            div.className = 'bg-white/5 border border-white/10 p-3 rounded-xl flex items-center justify-between text-xs';
             div.innerHTML = `
                 <span class="font-semibold text-gray-200">${item}</span>
-                <button onclick="this.innerText='CLAIMED!'; this.className='bg-emerald-500 text-black font-bold px-3 py-1.5 rounded-lg text-xs';" class="tab-btn bg-teslaCyan/20 border border-teslaCyan/40 text-teslaCyan font-bold px-3 py-1.5 rounded-lg">
+                <button id="scav-btn-${idx}" onclick="claimScavenger(${idx})" class="tab-btn bg-teslaCyan/20 border border-teslaCyan/40 text-teslaCyan font-bold px-3 py-1.5 rounded-lg hover:bg-teslaCyan/30">
                     I SPOT IT FIRST!
                 </button>
             `;
             scavList.appendChild(div);
         });
 
-        // AI 20 QUESTIONS
-        function submitAiQuestion() {
+        function claimScavenger(idx) {
+            const btn = document.getElementById(`scav-btn-${idx}`);
+            btn.innerText = 'CLAIMED!';
+            btn.className = 'tab-btn bg-emerald-500 text-black font-bold px-3 py-1.5 rounded-lg text-xs';
+            btn.onclick = null;
+        }
+
+        // TAB 4: 20 QUESTIONS AI CHAT
+        function askAiQuestion() {
             const input = document.getElementById('ai-input');
             const chat = document.getElementById('ai-chat-box');
             if (!input.value.trim()) return;
 
-            const userDiv = document.createElement('div');
-            userDiv.className = 'text-white font-semibold';
-            userDiv.innerText = 'You: ' + input.value;
-            chat.appendChild(userDiv);
+            const userMsg = document.createElement('div');
+            userMsg.className = 'text-white font-semibold';
+            userMsg.innerText = 'You: ' + input.value;
+            chat.appendChild(userMsg);
+
+            const qText = input.value.toLowerCase();
+            input.value = '';
 
             setTimeout(() => {
-                const aiDiv = document.createElement('div');
-                aiDiv.className = 'text-teslaCyan';
-                aiDiv.innerText = 'AI: YES! It is related to history along highway corridors.';
-                chat.appendChild(aiDiv);
+                const aiMsg = document.createElement('div');
+                aiMsg.className = 'text-teslaCyan';
+                
+                if (qText.includes('stone') || qText.includes('building') || qText.includes('structure')) {
+                    aiMsg.innerText = 'AI: YES! It is a historical structure.';
+                } else if (qText.includes('water') || qText.includes('river')) {
+                    aiMsg.innerText = 'AI: NO, it is not located directly on water.';
+                } else {
+                    aiMsg.innerText = 'AI: YES! That aligns with this landmark.';
+                }
+                
+                chat.appendChild(aiMsg);
                 chat.scrollTop = chat.scrollHeight;
-            }, 500);
-
-            input.value = '';
+            }, 400);
         }
 
-        // SAVE TESLA CREDENTIALS
+        // TAB 5: LOCAL STORAGE SECURITY LOGIC
         function saveTeslaCredentials() {
-            alert('Credentials saved! Passage is now configured to sync telemetry via Tesla Fleet API.');
+            const token = document.getElementById('tesla-token-input').value.trim();
+            const vin = document.getElementById('tesla-vin-input').value.trim();
+
+            if (!token || !vin) {
+                alert('Please enter both Access Token and Vehicle VIN.');
+                return;
+            }
+
+            localStorage.setItem('passage_tesla_token', token);
+            localStorage.setItem('passage_tesla_vin', vin);
+            
+            updateStorageStatus();
+            alert('Credentials saved safely in your local browser storage!');
         }
 
-        // LEAFLET MAP INITIALIZATION
+        function clearSavedCredentials() {
+            localStorage.removeItem('passage_tesla_token');
+            localStorage.removeItem('passage_tesla_vin');
+            document.getElementById('tesla-token-input').value = '';
+            document.getElementById('tesla-vin-input').value = '';
+            updateStorageStatus();
+            alert('Saved credentials cleared from local storage.');
+        }
+
+        function updateStorageStatus() {
+            const token = localStorage.getItem('passage_tesla_token');
+            const statusText = document.getElementById('storage-status-text');
+            
+            if (token) {
+                statusText.innerText = 'Credentials Loaded (Local)';
+                statusText.className = 'font-bold text-emerald-400';
+            } else {
+                statusText.innerText = 'No Credentials Saved';
+                statusText.className = 'font-bold text-amber-400';
+            }
+        }
+
+        // INITIALIZE MAP & LOAD SAVED DATA
         window.onload = function() {
+            // Load saved credentials if any
+            const savedToken = localStorage.getItem('passage_tesla_token');
+            const savedVin = localStorage.getItem('passage_tesla_vin');
+            if (savedToken) document.getElementById('tesla-token-input').value = savedToken;
+            if (savedVin) document.getElementById('tesla-vin-input').value = savedVin;
+            updateStorageStatus();
+
+            // Initialize background Leaflet map safely
             try {
-                const map = L.map('leaflet-map', { zoomControl: false }).setView([40.0417, -86.8986], 12);
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
+                const map = L.map('leaflet-map', { 
+                    zoomControl: false,
+                    attributionControl: false
+                }).setView([40.0417, -86.8986], 12);
+
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { 
+                    maxZoom: 19 
+                }).addTo(map);
 
                 const carIcon = L.divIcon({
-                    className: 'tesla-car-marker',
+                    className: 'tesla-marker',
                     html: '<div class="w-6 h-6 bg-teslaRed rounded-full border-2 border-white flex items-center justify-center text-white text-[10px] pulse-red"><i class="fa-solid fa-car"></i></div>',
                     iconSize: [24, 24]
-                }
+                });
+
+                L.marker([40.0417, -86.8986], { icon: carIcon }).addTo(map);
+            } catch(e) {
+                console.log('Map failed to load:', e);
+            }
+        };
+    </script>
+</body>
+</html>
+```
