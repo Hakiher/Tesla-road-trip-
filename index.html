@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Passage - Tesla Route Map & VS Suite</title>
+    <title>Passage - Tesla Passenger Suite</title>
     
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -11,7 +11,7 @@
     <!-- FontAwesome Icons CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Leaflet CSS for Zero-Config OpenStreetMap -->
+    <!-- Leaflet CSS for Map Tiles -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
     <script>
@@ -42,7 +42,7 @@
             background-color: #0A0B0E;
             color: #F3F4F6;
             overflow: hidden;
-            font-family: 'Inter', sans-serif;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             width: 100vw;
             height: 100vh;
             margin: 0;
@@ -58,7 +58,7 @@
             background: #0A0B0E;
         }
 
-        /* Dark Mode Styling for OpenStreetMap Tiles */
+        /* Dark High-Contrast Style for Map Tiles */
         .leaflet-layer, .leaflet-control-zoom-in, .leaflet-control-zoom-out {
             filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3);
         }
@@ -71,6 +71,11 @@
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
         }
 
+        .window-header {
+            cursor: move;
+            touch-action: none;
+        }
+
         .tab-btn {
             cursor: pointer;
             touch-action: manipulation;
@@ -78,22 +83,22 @@
         }
         
         .tab-btn:active {
-            transform: scale(0.95);
+            transform: scale(0.96);
         }
     </style>
 </head>
 <body class="antialiased">
 
-    <!-- LEAFLET LIVE ROUTE MAP -->
+    <!-- LIVE ROUTE MAP CANVAS -->
     <div id="map"></div>
 
-    <!-- TOP TELEMETRY & PLAYER VS SCOREBOARD -->
+    <!-- TOP TELEMETRY & PLAYER SCOREBOARD BAR -->
     <header class="absolute top-3 left-3 right-3 z-30 flex flex-col md:flex-row items-center justify-between gap-2 pointer-events-none">
         <div class="glass-panel pointer-events-auto rounded-xl px-4 py-2 flex items-center gap-4 text-xs font-semibold w-full md:w-auto justify-between md:justify-start">
             <div class="flex items-center gap-2 text-teslaRed font-bold tracking-wider">
                 <i class="fa-solid fa-car-side text-sm"></i>
                 <span>PASSAGE</span>
-                <span class="text-[10px] bg-teslaRed/20 px-1.5 py-0.5 rounded text-teslaRed border border-teslaRed/30">ROUTE MAP</span>
+                <span class="text-[10px] bg-teslaRed/20 px-1.5 py-0.5 rounded text-teslaRed border border-teslaRed/30">SUITE</span>
             </div>
             <div class="h-4 w-[1px] bg-white/10 hidden sm:block"></div>
             <div class="flex items-center gap-1.5 text-gray-300">
@@ -103,7 +108,7 @@
             <div class="h-4 w-[1px] bg-white/10 hidden sm:block"></div>
             <div class="flex items-center gap-2">
                 <span id="telemetry-speed" class="text-teslaGreen font-mono text-sm font-bold">0 MPH</span>
-                <span id="telemetry-gps-status" class="text-xs text-teslaCyan font-mono"><i class="fa-solid fa-satellite text-teslaCyan mr-1"></i>GPS Ready</span>
+                <span id="telemetry-gps-status" class="text-xs text-teslaCyan font-mono"><i class="fa-solid fa-satellite text-teslaCyan mr-1"></i>GPS Standby</span>
             </div>
         </div>
 
@@ -111,21 +116,23 @@
         <div id="header-leaderboard" class="glass-panel pointer-events-auto rounded-xl px-4 py-2 flex items-center gap-4 text-xs w-full md:w-auto justify-around"></div>
     </header>
 
-    <!-- MAIN UNIFIED FLOATING ACTIVITIES DOCK -->
-    <main id="passage-dock" class="absolute top-20 left-3 bottom-4 z-20 w-[94vw] md:w-[450px] glass-panel rounded-2xl flex flex-col transition-all duration-300">
-        <!-- Dock Header -->
-        <div class="px-4 py-3 border-b border-white/10 flex items-center justify-between">
+    <!-- WINDOW 1: DRAGGABLE MULTI-MODULE GAME DOCK -->
+    <div id="win-game-dock" class="absolute top-20 left-3 z-20 w-[94vw] md:w-[420px] glass-panel rounded-2xl flex flex-col transition-shadow">
+        <!-- Window Drag Handle -->
+        <div class="window-header px-4 py-3 border-b border-white/10 flex items-center justify-between bg-black/40 rounded-t-2xl" onmousedown="dragStart(event, 'win-game-dock')" ontouchstart="dragStart(event, 'win-game-dock')">
             <div class="flex items-center gap-2">
                 <i class="fa-solid fa-gamepad text-teslaCyan"></i>
                 <span class="text-xs font-bold uppercase tracking-wider text-gray-300" id="active-tab-title">PASSENGER SETUP</span>
             </div>
-            <button onclick="toggleDock(false)" class="text-gray-400 hover:text-white p-1.5 rounded-lg bg-white/5 border border-white/10">
-                <i class="fa-solid fa-xmark text-sm"></i>
-            </button>
+            <div class="flex items-center gap-2">
+                <button onclick="toggleWindow('win-game-dock')" class="text-gray-400 hover:text-white p-1 rounded">
+                    <i class="fa-solid fa-minus text-xs"></i>
+                </button>
+            </div>
         </div>
 
-        <!-- Activity Body Container -->
-        <div class="flex-1 overflow-y-auto p-4 space-y-4" id="activity-content-container">
+        <!-- Window Body Container -->
+        <div class="p-4 space-y-4 max-h-[60vh] overflow-y-auto" id="dock-content">
             
             <!-- SECTION 0: PASSENGERS -->
             <div id="section-players" class="space-y-4">
@@ -190,14 +197,14 @@
                 <div id="scavenger-list" class="space-y-2"></div>
             </div>
 
-            <!-- SECTION 4: GPS & CONFIG -->
+            <!-- SECTION 4: GPS SYNC -->
             <div id="section-setup" class="space-y-4 hidden">
                 <div class="bg-emerald-500/10 border border-emerald-500/30 p-3 rounded-xl text-xs space-y-2">
                     <div class="font-bold text-emerald-400 flex items-center gap-1.5">
                         <i class="fa-solid fa-location-crosshairs"></i>
                         <span>CAR GPS LOCATION SYNC</span>
                     </div>
-                    <p class="text-gray-300">Tap below to activate live tracking on your map:</p>
+                    <p class="text-gray-300">Tap below to grant browser location access and track your drive position on the map:</p>
                     <button onclick="enableBrowserGps()" class="tab-btn w-full bg-teslaCyan text-black font-bold py-2.5 rounded-lg hover:bg-cyan-400 transition">
                         Enable Live GPS Tracking
                     </button>
@@ -206,36 +213,69 @@
 
         </div>
 
-        <!-- Bottom Navigation Tabs -->
+        <!-- Dock Navigation Tabs -->
         <div class="p-2 border-t border-white/10 bg-black/60 rounded-b-2xl flex items-center justify-around gap-1 text-[10px]">
-            <button onclick="openTab('players')" id="nav-btn-players" class="tab-btn flex-1 py-2.5 rounded-xl flex flex-col items-center gap-1 font-bold text-teslaCyan bg-white/10">
+            <button onclick="openTab('players')" id="nav-btn-players" class="tab-btn flex-1 py-2 rounded-xl flex flex-col items-center gap-1 font-bold text-teslaCyan bg-white/10">
                 <i class="fa-solid fa-users text-sm"></i>
                 <span>Players</span>
             </button>
-            <button onclick="openTab('trivia')" id="nav-btn-trivia" class="tab-btn flex-1 py-2.5 rounded-xl flex flex-col items-center gap-1 font-bold text-gray-400">
+            <button onclick="openTab('trivia')" id="nav-btn-trivia" class="tab-btn flex-1 py-2 rounded-xl flex flex-col items-center gap-1 font-bold text-gray-400">
                 <i class="fa-solid fa-bolt text-sm"></i>
                 <span>Trivia</span>
             </button>
-            <button onclick="openTab('bingo')" id="nav-btn-bingo" class="tab-btn flex-1 py-2.5 rounded-xl flex flex-col items-center gap-1 font-bold text-gray-400">
+            <button onclick="openTab('bingo')" id="nav-btn-bingo" class="tab-btn flex-1 py-2 rounded-xl flex flex-col items-center gap-1 font-bold text-gray-400">
                 <i class="fa-solid fa-border-all text-sm"></i>
                 <span>Bingo</span>
             </button>
-            <button onclick="openTab('scavenger')" id="nav-btn-scavenger" class="tab-btn flex-1 py-2.5 rounded-xl flex flex-col items-center gap-1 font-bold text-gray-400">
+            <button onclick="openTab('scavenger')" id="nav-btn-scavenger" class="tab-btn flex-1 py-2 rounded-xl flex flex-col items-center gap-1 font-bold text-gray-400">
                 <i class="fa-solid fa-eye text-sm"></i>
                 <span>Spotter</span>
             </button>
-            <button onclick="openTab('setup')" id="nav-btn-setup" class="tab-btn flex-1 py-2.5 rounded-xl flex flex-col items-center gap-1 font-bold text-gray-400">
+            <button onclick="openTab('setup')" id="nav-btn-setup" class="tab-btn flex-1 py-2 rounded-xl flex flex-col items-center gap-1 font-bold text-gray-400">
                 <i class="fa-solid fa-gear text-sm"></i>
                 <span>GPS</span>
             </button>
         </div>
-    </main>
+    </div>
 
-    <!-- FLOATING RE-OPEN BUTTON -->
-    <button id="open-dock-btn" onclick="toggleDock(true)" class="hidden absolute bottom-4 left-4 z-30 glass-panel px-4 py-3 rounded-2xl flex items-center gap-3 text-xs font-bold text-white border border-teslaCyan/40 shadow-2xl tab-btn">
-        <i class="fa-solid fa-gamepad text-teslaCyan text-base"></i>
-        <span>OPEN PASSAGE DOCK</span>
-    </button>
+    <!-- WINDOW 2: DRAGGABLE TELEMETRY HUD -->
+    <div id="win-telemetry-hud" class="absolute top-20 right-3 z-20 w-[90vw] md:w-[320px] glass-panel rounded-2xl flex flex-col transition-shadow">
+        <div class="window-header px-4 py-3 border-b border-white/10 flex items-center justify-between bg-black/40 rounded-t-2xl" onmousedown="dragStart(event, 'win-telemetry-hud')" ontouchstart="dragStart(event, 'win-telemetry-hud')">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-gauge-high text-teslaGreen"></i>
+                <span class="text-xs font-bold uppercase tracking-wider text-gray-300">CAR TELEMETRY HUD</span>
+            </div>
+            <button onclick="toggleWindow('win-telemetry-hud')" class="text-gray-400 hover:text-white p-1 rounded">
+                <i class="fa-solid fa-minus text-xs"></i>
+            </button>
+        </div>
+        <div class="p-4 space-y-3 text-xs">
+            <div class="flex items-center justify-between bg-white/5 p-2.5 rounded-xl border border-white/10">
+                <span class="text-gray-400">Current Speed</span>
+                <span id="hud-speed" class="font-mono text-teslaGreen font-bold text-base">0 MPH</span>
+            </div>
+            <div class="flex items-center justify-between bg-white/5 p-2.5 rounded-xl border border-white/10">
+                <span class="text-gray-400">Coordinates</span>
+                <span id="hud-coords" class="font-mono text-teslaCyan text-xs">40.042, -86.899</span>
+            </div>
+            <div class="flex items-center justify-between bg-white/5 p-2.5 rounded-xl border border-white/10">
+                <span class="text-gray-400">Drive Status</span>
+                <span id="hud-status" class="font-mono text-emerald-400 text-xs">STANDBY</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- BOTTOM FLOATING CONTROLLER FOR CLOSED WINDOWS -->
+    <div class="absolute bottom-4 left-4 z-30 flex items-center gap-2">
+        <button onclick="toggleWindow('win-game-dock')" class="glass-panel px-3 py-2 rounded-xl text-xs font-bold text-white flex items-center gap-2 border border-teslaCyan/40 tab-btn">
+            <i class="fa-solid fa-gamepad text-teslaCyan"></i>
+            <span>Game Dock</span>
+        </button>
+        <button onclick="toggleWindow('win-telemetry-hud')" class="glass-panel px-3 py-2 rounded-xl text-xs font-bold text-white flex items-center gap-2 border border-teslaGreen/40 tab-btn">
+            <i class="fa-solid fa-gauge-high text-teslaGreen"></i>
+            <span>Telemetry HUD</span>
+        </button>
+    </div>
 
     <!-- Leaflet JS CDN -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -245,6 +285,55 @@
         let currentTurnIdx = 0;
         let map, carMarker, routeLine;
         let routeCoordinates = [];
+
+        // DRAGGABLE WINDOW SYSTEM
+        let activeDragWin = null;
+        let dragOffsetX = 0, dragOffsetY = 0;
+
+        function dragStart(e, winId) {
+            activeDragWin = document.getElementById(winId);
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const rect = activeDragWin.getBoundingClientRect();
+            dragOffsetX = clientX - rect.left;
+            dragOffsetY = clientY - rect.top;
+
+            document.addEventListener('mousemove', dragMove);
+            document.addEventListener('mouseup', dragEnd);
+            document.addEventListener('touchmove', dragMove, { passive: false });
+            document.addEventListener('touchend', dragEnd);
+        }
+
+        function dragMove(e) {
+            if (!activeDragWin) return;
+            if (e.preventDefault) e.preventDefault();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            let newX = clientX - dragOffsetX;
+            let newY = clientY - dragOffsetY;
+
+            // Screen boundary clamping
+            newX = Math.max(10, Math.min(newX, window.innerWidth - activeDragWin.offsetWidth - 10));
+            newY = Math.max(10, Math.min(newY, window.innerHeight - activeDragWin.offsetHeight - 10));
+
+            activeDragWin.style.left = newX + 'px';
+            activeDragWin.style.top = newY + 'px';
+            activeDragWin.style.right = 'auto';
+        }
+
+        function dragEnd() {
+            activeDragWin = null;
+            document.removeEventListener('mousemove', dragMove);
+            document.removeEventListener('mouseup', dragEnd);
+            document.removeEventListener('touchmove', dragMove);
+            document.removeEventListener('touchend', dragEnd);
+        }
+
+        function toggleWindow(winId) {
+            const win = document.getElementById(winId);
+            win.classList.toggle('hidden');
+        }
 
         function updateLeaderboard() {
             const bar = document.getElementById('header-leaderboard');
@@ -267,6 +356,9 @@
                         const speedMph = pos.coords.speed ? Math.round(pos.coords.speed * 2.23694) : 0;
                         
                         document.getElementById('telemetry-speed').innerText = speedMph + ' MPH';
+                        document.getElementById('hud-speed').innerText = speedMph + ' MPH';
+                        document.getElementById('hud-coords').innerText = `${lat.toFixed(3)}, ${lng.toFixed(3)}`;
+                        document.getElementById('hud-status').innerText = speedMph > 0 ? 'DRIVING' : 'STOPPED';
                         document.getElementById('telemetry-location').innerText = `Lat: ${lat.toFixed(3)}, Lng: ${lng.toFixed(3)}`;
                         document.getElementById('telemetry-gps-status').innerHTML = '<i class="fa-solid fa-satellite text-teslaGreen mr-1"></i>GPS LIVE';
 
@@ -274,14 +366,13 @@
                         carMarker.setLatLng(latLng);
                         map.setView(latLng, 15);
 
-                        // Record route trail line
                         routeCoordinates.push(latLng);
                         routeLine.setLatLngs(routeCoordinates);
                     },
                     (err) => { alert('GPS access unavailable or denied.'); },
                     { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
                 );
-                alert('Live GPS tracking enabled! Your car marker will follow your route.');
+                alert('Live GPS tracking enabled!');
             }
         }
 
@@ -289,17 +380,11 @@
             const names = document.querySelectorAll('.p-input');
             players = [];
             names.forEach(n => {
-                if (n.value.trim()) players.precision({ name: n.value.trim(), score: 100 });
                 if (n.value.trim()) players.push({ name: n.value.trim(), score: 100 });
             });
             if (players.length === 0) players.push({ name: 'Player 1', score: 100 });
             updateLeaderboard();
             openTab('trivia');
-        }
-
-        function toggleDock(show) {
-            document.getElementById('passage-dock').classList.toggle('hidden', !show);
-            document.getElementById('open-dock-btn').classList.toggle('hidden', show);
         }
 
         function openTab(tabName) {
@@ -358,18 +443,15 @@
         window.onload = function() {
             updateLeaderboard();
 
-            // Default startup coordinates (Crawfordsville, IN area)
             const defaultLat = 40.0417;
             const defaultLng = -86.8986;
 
             map = L.map('map', { zoomControl: false }).setView([defaultLat, defaultLng], 14);
 
-            // OpenStreetMap tile layer styled dark
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
             }).addTo(map);
 
-            // Custom Tesla Car Marker
             const carIcon = L.divIcon({
                 className: 'custom-car-marker',
                 html: '<div style="background-color: #E82127; width: 18px; height: 18px; border: 3px solid #FFFFFF; border-radius: 50%; box-shadow: 0 0 15px #E82127;"></div>',
@@ -378,8 +460,6 @@
             });
 
             carMarker = L.marker([defaultLat, defaultLng], { icon: carIcon }).addTo(map);
-
-            // Blue Route Trail Polyline that records your drive path
             routeLine = L.polyline([], { color: '#3B82F6', weight: 5, opacity: 0.8 }).addTo(map);
         };
     </script>
