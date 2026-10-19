@@ -1,11 +1,10 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Passage - Tesla Passenger VS Suite</title>
-
+    
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -13,9 +12,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- Google Fonts: Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
-
-    <!-- Leaflet CSS & JS with Fallback Detector -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS & JS with Fallback Engine -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" id="leaflet-css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" id="leaflet-js"></script>
 
@@ -25,12 +24,12 @@
                 extend: {
                     colors: {
                         teslaRed: '#E82127',
-                        teslaBlue: '#3E6AE1',
-                        teslaDark: '#0A0A0C',
-                        teslaPanel: 'rgba(18, 18, 22, 0.96)',
+                        teslaBlue: '#3B82F6',
+                        teslaDark: '#0A0B0E',
+                        teslaPanel: 'rgba(18, 18, 22, 0.95)',
                         teslaBorder: 'rgba(255, 255, 255, 0.12)',
-                        teslaCyan: '#00F0FF',
-                        teslaGreen: '#34C759',
+                        teslaCyan: '#06B6D4',
+                        teslaGreen: '#10B981',
                     },
                     fontFamily: {
                         sans: ['Inter', 'sans-serif'],
@@ -49,8 +48,8 @@
         }
 
         body {
-            background-color: #0A0A0C;
-            color: #F2F2F7;
+            background-color: #0A0B0E;
+            color: #F3F4F6;
             overflow: hidden;
             font-family: 'Inter', sans-serif;
             width: 100vw;
@@ -65,10 +64,10 @@
             width: 100vw;
             height: 100vh;
             z-index: 0;
-            background: #0A0A0C;
+            background: #0A0B0E;
         }
 
-        #leaflet-map, #canvas-map {
+        .leaflet-map, #canvas-map {
             position: absolute;
             inset: 0;
             width: 100%;
@@ -76,348 +75,299 @@
         }
 
         .leaflet-container {
-            background: #09090b !important;
+            background: #000000 !important;
         }
 
         .glass-panel {
-            background: rgba(18, 18, 22, 0.96);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            background: rgba(16, 18, 24, 0.96);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.12);
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
         }
 
-        /* Custom Scrollbars */
-        ::-webkit-scrollbar {
+        .custom-scrollbar::-webkit-scrollbar {
             width: 6px;
-            height: 6px;
         }
-        ::-webkit-scrollbar-track {
-            background: rgba(0,0,0,0.3);
-            border-radius: 4px;
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
         }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.25);
-            border-radius: 4px;
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
         }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #E82127;
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.4);
         }
 
-        /* Custom Pulse Marker for Leaflet */
-        .stop-marker-pulse {
-            width: 22px;
-            height: 22px;
-            background: rgba(0, 240, 255, 0.85);
-            border: 3px solid #ffffff;
-            border-radius: 50%;
-            box-shadow: 0 0 15px #00F0FF;
-            animation: radarPulse 2s infinite;
+        .pulse-red {
+            box-shadow: 0 0 0 0 rgba(232, 33, 39, 0.7);
+            animation: pulse-red 2s infinite;
         }
-        @keyframes radarPulse {
-            0% { box-shadow: 0 0 0 0 rgba(0, 240, 255, 0.7); }
-            70% { box-shadow: 0 0 0 14px rgba(0, 240, 255, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(0, 240, 255, 0); }
+        @keyframes pulse-red {
+            0% { transform: scale(0.98); box-shadow: 0 0 0 0 rgba(232, 33, 39, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(232, 33, 39, 0); }
+            100% { transform: scale(0.98); box-shadow: 0 0 0 0 rgba(232, 33, 39, 0); }
         }
 
-        .car-marker-icon {
-            filter: drop-shadow(0px 0px 12px #E82127);
-            transition: transform 0.3s ease-out;
+        .tesla-car-marker {
+            transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
         }
     </style>
 </head>
-<body class="relative h-screen w-screen overflow-hidden">
+<body class="antialiased">
 
-    <!-- MAP CONTAINER WITH LEAFLET + CANVAS PROCEDURAL FALLBACK -->
+    <!-- FULLSCREEN MAP BACKGROUND -->
     <div id="map-container">
-        <div id="leaflet-map"></div>
+        <div id="leaflet-map" class="leaflet-map"></div>
         <canvas id="canvas-map" class="hidden"></canvas>
     </div>
 
-    <!-- TOP TELEMETRY & APP BAR -->
-    <header class="absolute top-0 left-0 right-0 z-20 px-6 py-2.5 flex items-center justify-between glass-panel border-b border-teslaBorder">
-        <!-- Brand & Connection Status -->
-        <div class="flex items-center space-x-3">
-            <i class="fa-solid fa-car-side text-teslaRed text-2xl"></i>
-            <div>
-                <div class="flex items-center space-x-2">
-                    <span class="font-black text-lg tracking-wider text-white">PASSAGE</span>
-                    <span class="text-[9px] font-mono bg-teslaRed/20 text-teslaRed px-1.5 py-0.5 rounded border border-teslaRed/40 font-bold">VS SUITE</span>
-                </div>
-                <span class="text-[10px] text-gray-400 font-mono block">Tesla Model 3 Dashboard Edition</span>
+    <!-- TOP TELEMETRY & PLAYER VS SCOREBOARD -->
+    <header class="absolute top-3 left-3 right-3 z-30 flex flex-col md:flex-row items-center justify-between gap-2 pointer-events-auto">
+        <!-- Vehicle Status -->
+        <div class="glass-panel rounded-xl px-4 py-2 flex items-center gap-4 text-xs font-semibold w-full md:w-auto justify-between md:justify-start">
+            <div class="flex items-center gap-2 text-teslaRed font-bold tracking-wider">
+                <i class="fa-solid fa-car-side text-sm"></i>
+                <span>PASSAGE</span>
+                <span class="text-[10px] bg-teslaRed/20 px-1.5 py-0.5 rounded text-teslaRed border border-teslaRed/30">VS MODE</span>
+            </div>
+            <div class="h-4 w-[1px] bg-white/10 hidden sm:block"></div>
+            <div class="flex items-center gap-1.5 text-gray-300">
+                <i class="fa-solid fa-location-arrow text-teslaCyan"></i>
+                <span id="telemetry-location">I-65 N, Crawfordsville, IN</span>
+            </div>
+            <div class="h-4 w-[1px] bg-white/10 hidden sm:block"></div>
+            <div class="flex items-center gap-2">
+                <span id="telemetry-speed" class="text-teslaGreen font-mono text-sm font-bold">68 MPH</span>
+                <span id="telemetry-battery" class="text-gray-300 font-mono text-xs"><i class="fa-solid fa-battery-three-quarters text-teslaGreen mr-1"></i>78%</span>
             </div>
         </div>
 
-        <!-- Telemetry Metrics Bar -->
-        <div class="hidden md:flex items-center space-x-3 text-xs font-mono">
-            <div class="flex items-center space-x-2 bg-black/60 px-3 py-1.5 rounded-xl border border-teslaBorder">
-                <i class="fa-solid fa-location-dot text-teslaCyan"></i>
-                <span id="tel-location" class="text-white font-bold">I-65 N, Crawfordsville, IN</span>
+        <!-- Player VS Leaderboard Bar -->
+        <div id="vs-scoreboard-bar" class="glass-panel rounded-xl px-4 py-2 flex items-center gap-4 text-xs w-full md:w-auto justify-around">
+            <div class="text-xs font-bold text-gray-400 uppercase tracking-widest hidden lg:block">VERSUS LEADERBOARD:</div>
+            <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-blue-500 inline-block"></span>
+                <span id="p1-name" class="font-semibold text-gray-200">Front Right:</span>
+                <span id="p1-score" class="font-mono text-blue-400 font-bold text-sm">350 pts</span>
             </div>
-            <div class="flex items-center space-x-2 bg-black/60 px-3 py-1.5 rounded-xl border border-teslaBorder">
-                <i class="fa-solid fa-gauge-high text-teslaGreen"></i>
-                <span id="tel-speed" class="text-white font-bold">68 MPH</span>
+            <div class="text-gray-600 font-bold">VS</div>
+            <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-purple-500 inline-block"></span>
+                <span id="p2-name" class="font-semibold text-gray-200">Rear Left:</span>
+                <span id="p2-score" class="font-mono text-purple-400 font-bold text-sm">280 pts</span>
             </div>
-            <div class="flex items-center space-x-2 bg-black/60 px-3 py-1.5 rounded-xl border border-teslaBorder">
-                <i class="fa-solid fa-battery-three-quarters text-teslaGreen"></i>
-                <span id="tel-battery" class="text-white font-bold">78%</span>
-            </div>
-            <div class="flex items-center space-x-2 bg-black/60 px-3 py-1.5 rounded-xl border border-teslaBorder">
-                <i class="fa-solid fa-mountain text-yellow-400"></i>
-                <span id="tel-alt" class="text-white font-bold">790 FT</span>
-            </div>
-            <div class="flex items-center space-x-2 bg-black/60 px-3 py-1.5 rounded-xl border border-teslaBorder">
-                <i class="fa-solid fa-route text-teslaBlue"></i>
-                <span id="tel-dest" class="text-white font-bold">NAV: Chicago, IL</span>
-            </div>
-        </div>
-
-        <!-- Controls: Map Mode Indicator & Sound Toggle -->
-        <div class="flex items-center space-x-2">
-            <span id="map-mode-badge" class="hidden sm:inline-block text-[10px] font-mono px-2 py-1 rounded-lg bg-black/60 border border-teslaBorder text-teslaCyan font-bold">
-                MAP: LEAFLET
-            </span>
-            <button onclick="toggleAudio()" id="audio-toggle-btn" class="p-2.5 rounded-xl bg-black/60 border border-teslaBorder text-teslaCyan hover:border-teslaCyan transition flex items-center justify-center">
-                <i id="audio-icon" class="fa-solid fa-volume-high text-sm"></i>
-            </button>
-            <div class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-teslaRed/20 border border-teslaRed/40 text-xs font-mono font-bold text-teslaRed">
-                <i class="fa-solid fa-circle text-[8px] animate-pulse"></i>
-                <span>DRIVE</span>
+            <div class="text-gray-600 font-bold">VS</div>
+            <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
+                <span id="p3-name" class="font-semibold text-gray-200">Rear Right:</span>
+                <span id="p3-score" class="font-mono text-emerald-400 font-bold text-sm">190 pts</span>
             </div>
         </div>
     </header>
 
-    <!-- PLAYER MULTIPLAYER SCOREBAR (SUB-HEADER) -->
-    <div id="player-scorebar" class="absolute top-16 left-0 right-0 z-10 px-6 py-2 bg-black/75 backdrop-blur-md border-b border-teslaBorder flex items-center justify-around font-mono text-xs overflow-x-auto">
-        <!-- Rendered dynamically via JS -->
-    </div>
+    <!-- MAIN UNIFIED FLOATING ACTIVITIES DOCK -->
+    <main id="passage-dock" class="absolute top-20 left-3 bottom-16 z-20 w-[94vw] md:w-[450px] glass-panel rounded-2xl flex flex-col transition-all duration-300 ease-in-out pointer-events-auto">
+        <!-- Dock Header -->
+        <div class="px-4 py-3 border-b border-white/10 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-gamepad text-teslaCyan"></i>
+                <span class="text-xs font-bold uppercase tracking-wider text-gray-300">PASSENGER ACTIVITIES DOCK</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <button id="toggle-synth-audio" class="text-xs text-gray-400 hover:text-white px-2 py-1 rounded bg-white/5 border border-white/10">
+                    <i class="fa-solid fa-volume-high text-teslaGreen"></i>
+                </button>
+                <button id="minimize-dock-btn" class="text-gray-400 hover:text-white p-1 text-base">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+        </div>
 
-    <!-- RE-OPEN PANEL FLOATING PILL BUTTON (VISIBLE WHEN MINIMIZED) -->
-    <button id="reopen-hud-btn" onclick="toggleHudWindow(true)" class="hidden absolute top-28 left-6 z-20 px-4 py-2.5 rounded-2xl glass-panel border border-teslaCyan text-teslaCyan text-xs font-bold font-mono shadow-2xl hover:bg-teslaCyan hover:text-black transition flex items-center space-x-2">
-        <i class="fa-solid fa-window-restore text-sm"></i>
-        <span>OPEN PASSAGE DOCK</span>
-    </button>
+        <!-- Activity Body Container -->
+        <div class="flex-1 overflow-y-auto p-4 custom-scrollbar" id="activity-content-container">
+            
+            <!-- SECTION 1: VS SPEED TRIVIA -->
+            <div id="tab-trivia" class="space-y-4">
+                <div class="flex items-center justify-between bg-blue-500/10 border border-blue-500/30 p-2.5 rounded-xl">
+                    <div class="flex items-center gap-2 text-xs text-blue-300 font-semibold">
+                        <i class="fa-solid fa-trophy text-amber-400"></i>
+                        <span>CURRENT TURN:</span>
+                        <span id="trivia-turn-player" class="text-white font-bold bg-blue-600 px-2 py-0.5 rounded">Player 1 (Front Right)</span>
+                    </div>
+                    <div id="trivia-timer" class="font-mono text-sm font-bold text-amber-400">12s</div>
+                </div>
 
-    <!-- MAIN FLOATING HUD DOCK PANEL (LEFT SIDE) -->
-    <main id="hud-dock-panel" class="absolute top-28 left-6 z-10 w-[460px] max-w-[calc(100vw-3rem)] h-[calc(100vh-13rem)] glass-panel p-5 rounded-3xl flex flex-col justify-between transition-all duration-300">
-        <!-- Panel Header with Minimize/Close Button -->
-        <div class="flex items-center justify-between pb-3 border-b border-teslaBorder mb-3">
-            <span class="text-xs font-bold text-gray-400 font-mono uppercase tracking-wider flex items-center space-x-2">
-                <i class="fa-solid fa-layer-group text-teslaCyan"></i>
-                <span>PASSENGER ACTIVITIES DOCK</span>
-            </span>
-            <button onclick="toggleHudWindow(false)" title="Minimize / Close Window" class="w-7 h-7 rounded-full bg-black/60 border border-teslaBorder text-gray-400 hover:text-white hover:border-teslaRed hover:bg-teslaRed/20 transition flex items-center justify-center">
-                <i class="fa-solid fa-xmark text-sm"></i>
+                <div class="glass-panel p-4 rounded-xl border border-white/10">
+                    <div class="text-[10px] text-teslaCyan font-bold uppercase tracking-widest mb-1 flex items-center justify-between">
+                        <span>LOCATION TRIVIA • I-65 CORRIDOR</span>
+                        <span id="trivia-points" class="text-amber-400 font-mono">+100 PTS</span>
+                    </div>
+                    <p id="trivia-question" class="text-sm md:text-base font-semibold text-white mb-3">
+                        You are driving near Crawfordsville, IN! Which historic event or famous landmark is associated with this area?
+                    </p>
+                    <div id="trivia-answers" class="grid grid-cols-1 gap-2">
+                        <button onclick="handleTriviaAnswer(0)" class="w-full text-left p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-xs font-medium transition text-gray-200">
+                            A) Ben-Hur author Lew Wallace's Study Museum
+                        </button>
+                        <button onclick="handleTriviaAnswer(1)" class="w-full text-left p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-xs font-medium transition text-gray-200">
+                            B) The birth site of the First Transcontinental Highway
+                        </button>
+                        <button onclick="handleTriviaAnswer(2)" class="w-full text-left p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-xs font-medium transition text-gray-200">
+                            C) Indiana's first EV charging hub built in 1912
+                        </button>
+                        <button onclick="handleTriviaAnswer(3)" class="w-full text-left p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-xs font-medium transition text-gray-200">
+                            D) Indiana Dunes National Park visitor center
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 2: STATE BINGO -->
+            <div id="tab-bingo" class="space-y-4 hidden">
+                <div class="text-xs text-gray-400 mb-2">First passenger to spot out the window and claim 4 states in a row wins!</div>
+                <div class="grid grid-cols-3 gap-2" id="bingo-grid">
+                    <!-- Dynamic State Tiles -->
+                </div>
+            </div>
+
+            <!-- SECTION 3: SCAVENGER HUNT -->
+            <div id="tab-scavenger" class="space-y-4 hidden">
+                <div class="text-xs text-gray-400 mb-2">Tesla Camera / Passenger Sightings: Tap "I SPOT IT FIRST!" when you see the item out the window!</div>
+                <div id="scavenger-list" class="space-y-2">
+                    <!-- Dynamic Scavenger Tasks -->
+                </div>
+            </div>
+
+            <!-- SECTION 4: 20 QUESTIONS AI -->
+            <div id="tab-questions" class="space-y-4 hidden">
+                <div class="glass-panel p-4 rounded-xl text-center space-y-3">
+                    <div class="text-xs text-teslaCyan font-bold uppercase tracking-wider">AI ROAD TRIP TARGET</div>
+                    <div class="text-base font-bold text-white">Target Category: Famous US Landmark</div>
+                    <p class="text-xs text-gray-300">Passengers take turns asking YES/NO questions or guessing the target!</p>
+                    <div id="ai-chat-box" class="h-32 bg-black/40 rounded-lg p-2 text-left text-xs overflow-y-auto space-y-1 font-mono text-gray-300 border border-white/5">
+                        <div class="text-teslaCyan">AI: I am thinking of a landmark on your current route direction...</div>
+                    </div>
+                    <div class="flex gap-2">
+                        <input id="ai-input" type="text" placeholder="Is it made of stone?" class="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-teslaCyan">
+                        <button onclick="submitAiQuestion()" class="bg-teslaCyan text-black font-bold px-4 py-2 rounded-lg text-xs hover:bg-cyan-400">Ask</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 5: SAFETY & TESLA API SETUP -->
+            <div id="tab-safety" class="space-y-4 hidden">
+                <div class="bg-emerald-500/10 border border-emerald-500/30 p-3 rounded-xl text-xs space-y-1">
+                    <div class="font-bold text-emerald-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-shield-halved"></i>
+                        <span>100% TESLA WARRANTY SAFE</span>
+                    </div>
+                    <p class="text-gray-300 leading-relaxed">
+                        Under the federal Magnuson-Moss Warranty Act, accessing read-only telemetry or using official web applications <strong>never voids your Tesla vehicle warranty</strong>.
+                    </p>
+                </div>
+
+                <div class="glass-panel p-4 rounded-xl space-y-3 text-xs">
+                    <div class="font-bold text-white text-sm">Tesla Fleet API Link (Optional)</div>
+                    <p class="text-gray-400">Paste your read-only Tesla access token and vehicle VIN to stream exact live coordinates directly from your car:</p>
+                    
+                    <div class="space-y-2">
+                        <div>
+                            <label class="text-[10px] text-gray-400 uppercase font-bold">SSO Access Token</label>
+                            <input id="tesla-token-input" type="password" placeholder="eyJhbGciOiJSUzI1NiIs..." class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-teslaRed">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-gray-400 uppercase font-bold">Vehicle VIN</label>
+                            <input id="tesla-vin-input" type="text" placeholder="5YJ3E1EA8MF..." class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-teslaRed">
+                        </div>
+                        <button onclick="saveTeslaApiCredentials()" class="w-full bg-teslaRed text-white font-bold py-2 rounded-lg hover:bg-red-600 transition">Save Credentials & Connect</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Dock Bottom Navigation Tabs -->
+        <div class="p-2 border-t border-white/10 bg-black/40 rounded-b-2xl flex items-center justify-around gap-1 text-[10px]">
+            <button onclick="switchTab('trivia')" id="nav-trivia" class="flex-1 py-2 rounded-xl flex flex-col items-center gap-1 font-semibold text-teslaCyan bg-white/10">
+                <i class="fa-solid fa-bolt text-sm"></i>
+                <span>VS Trivia</span>
             </button>
-        </div>
-
-        <!-- Dynamic Tab Content Container -->
-        <div id="tab-content-container" class="flex-1 overflow-y-auto pr-1 space-y-4">
-            <!-- Injected by JavaScript -->
-        </div>
-
-        <!-- Dynamic Card Footer Container -->
-        <div id="tab-footer-container" class="pt-3 border-t border-teslaBorder shrink-0 mt-3 flex justify-between items-center text-xs">
-            <!-- Injected by JavaScript -->
+            <button onclick="switchTab('bingo')" id="nav-bingo" class="flex-1 py-2 rounded-xl flex flex-col items-center gap-1 font-semibold text-gray-400 hover:text-white">
+                <i class="fa-solid fa-border-all text-sm"></i>
+                <span>Bingo</span>
+            </button>
+            <button onclick="switchTab('scavenger')" id="nav-scavenger" class="flex-1 py-2 rounded-xl flex flex-col items-center gap-1 font-semibold text-gray-400 hover:text-white">
+                <i class="fa-solid fa-eye text-sm"></i>
+                <span>Spotter</span>
+            </button>
+            <button onclick="switchTab('questions')" id="nav-questions" class="flex-1 py-2 rounded-xl flex flex-col items-center gap-1 font-semibold text-gray-400 hover:text-white">
+                <i class="fa-solid fa-brain text-sm"></i>
+                <span>20 Ques</span>
+            </button>
+            <button onclick="switchTab('safety')" id="nav-safety" class="flex-1 py-2 rounded-xl flex flex-col items-center gap-1 font-semibold text-gray-400 hover:text-white">
+                <i class="fa-solid fa-gear text-sm"></i>
+                <span>Setup</span>
+            </button>
         </div>
     </main>
 
-    <!-- DRIVE CONTROLLER WIDGET (BOTTOM RIGHT OVERLAY) -->
-    <div class="absolute bottom-16 right-6 z-10 glass-panel p-3.5 rounded-2xl border border-teslaBorder max-w-xs space-y-2 text-xs font-mono">
-        <div class="flex items-center justify-between">
-            <span class="text-gray-400 font-bold flex items-center space-x-1.5">
-                <i class="fa-solid fa-sliders text-teslaCyan"></i>
-                <span>DRIVE SIMULATOR</span>
-            </span>
-            <button onclick="toggleDriveSim()" id="sim-play-btn" class="px-2 py-0.5 rounded bg-teslaGreen/20 text-teslaGreen border border-teslaGreen/40 font-bold hover:bg-teslaGreen hover:text-white transition">
-                PAUSE
-            </button>
-        </div>
-        
-        <div class="flex items-center space-x-2">
-            <span class="text-[10px] text-gray-400">ROUTE:</span>
-            <select id="route-selector" onchange="changeRoute(this.value)" class="bg-black/60 border border-teslaBorder rounded-lg px-2 py-1 text-white text-xs focus:outline-none w-full">
-                <option value="indiana">Midwest I-65 (IN -> IL)</option>
-                <option value="westcoast">West Coast I-5 (LA -> SF)</option>
-                <option value="eastcoast">East Coast I-95 (NY -> DC)</option>
-            </select>
-        </div>
+    <!-- RE-EXPAND FLOATING BUTTON (Visible when dock is minimized) -->
+    <button id="open-passage-dock-btn" class="hidden absolute bottom-4 left-4 z-30 glass-panel px-4 py-3 rounded-2xl flex items-center gap-3 text-xs font-bold text-white border border-teslaCyan/40 shadow-2xl hover:border-teslaCyan pointer-events-auto">
+        <i class="fa-solid fa-gamepad text-teslaCyan text-base"></i>
+        <span>OPEN PASSAGE DOCK</span>
+    </button>
 
-        <div class="flex items-center space-x-2">
-            <span class="text-[10px] text-gray-400">SPEED:</span>
-            <input type="range" id="speed-slider" min="30" max="90" value="68" oninput="updateDriveSpeed(this.value)" class="w-full accent-teslaRed">
-            <span id="speed-val" class="text-teslaGreen font-bold min-w-[45px]">68 MPH</span>
-        </div>
-    </div>
-
-    <!-- FIXED BOTTOM CONTROL NAVIGATION DOCK -->
-    <nav class="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 glass-panel px-4 py-2 rounded-2xl flex items-center space-x-1.5 border border-teslaBorder shadow-2xl max-w-full overflow-x-auto">
-        <button onclick="switchTab('lobby')" id="nav-btn-lobby" class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 text-gray-400 hover:text-white hover:bg-black/40 whitespace-nowrap">
-            <i class="fa-solid fa-users text-sm"></i>
-            <span>LOBBY</span>
-        </button>
-        <button onclick="switchTab('trivia')" id="nav-btn-trivia" class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 bg-teslaRed text-white whitespace-nowrap">
-            <i class="fa-solid fa-bolt text-sm"></i>
-            <span>VS TRIVIA</span>
-        </button>
-        <button onclick="switchTab('bingo')" id="nav-btn-bingo" class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 text-gray-400 hover:text-white hover:bg-black/40 whitespace-nowrap">
-            <i class="fa-solid fa-flag-checkered text-sm"></i>
-            <span>VS BINGO</span>
-        </button>
-        <button onclick="switchTab('scavenger')" id="nav-btn-scavenger" class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 text-gray-400 hover:text-white hover:bg-black/40 whitespace-nowrap">
-            <i class="fa-solid fa-camera text-sm"></i>
-            <span>VS HUNT</span>
-        </button>
-        <button onclick="switchTab('twenty')" id="nav-btn-twenty" class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 text-gray-400 hover:text-white hover:bg-black/40 whitespace-nowrap">
-            <i class="fa-solid fa-question text-sm"></i>
-            <span>VS 20 Qs</span>
-        </button>
-        <button onclick="switchTab('stops')" id="nav-btn-stops" class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 text-gray-400 hover:text-white hover:bg-black/40 whitespace-nowrap">
-            <i class="fa-solid fa-map-pin text-sm"></i>
-            <span>STOPS RADAR</span>
-        </button>
-        <button onclick="switchTab('safety')" id="nav-btn-safety" class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-2 text-teslaCyan hover:text-white hover:bg-black/40 whitespace-nowrap">
-            <i class="fa-solid fa-shield-halved text-sm"></i>
-            <span>SAFETY & API</span>
-        </button>
-    </nav>
-
-    <!-- TESLA NAV TOAST NOTIFICATION -->
-    <div id="nav-toast" class="hidden absolute top-28 right-6 z-30 glass-panel border-2 border-teslaCyan p-4 rounded-2xl shadow-2xl flex items-center space-x-4 max-w-sm">
-        <div class="w-10 h-10 rounded-xl bg-teslaCyan/20 text-teslaCyan flex items-center justify-center text-xl shrink-0">
-            <i class="fa-solid fa-location-arrow"></i>
-        </div>
-        <div>
-            <span class="text-xs text-teslaCyan font-bold block uppercase tracking-wider">Sent to Tesla Navigation</span>
-            <span id="nav-toast-msg" class="text-xs font-semibold text-white">Routing to landmark...</span>
-        </div>
-    </div>
-
-    <!-- JAVASCRIPT APPLICATION CORE -->
     <script>
-        /* ==========================================================================
-           1. SOUND ENGINE (WEB AUDIO API SYNTHESIZER - NO EXTERNAL MP3s)
-           ========================================================================== */
-        let audioCtx = null;
+        // Web Audio API Synthesizer for In-Car Audio Beeps
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         let soundEnabled = true;
 
-        function initAudioContext() {
-            if (!audioCtx) {
-                const AudioContext = window.AudioContext || window.webkitAudioContext;
-                if (AudioContext) audioCtx = new AudioContext();
-            }
-            if (audioCtx && audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-        }
-
-        function playBeep(freq = 440, type = 'sine', duration = 0.15) {
+        function playSound(type) {
             if (!soundEnabled) return;
             try {
-                initAudioContext();
-                if (!audioCtx) return;
-
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
-
-                osc.type = type;
-                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-
-                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
 
-                osc.start();
-                osc.stop(audioCtx.currentTime + duration);
+                if (type === 'correct') {
+                    osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+                    osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); // E5
+                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.3);
+                } else if (type === 'incorrect') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(220, audioCtx.currentTime); // A3
+                    osc.frequency.setValueAtTime(164.81, audioCtx.currentTime + 0.1); // E3
+                    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.4);
+                } else {
+                    osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.1);
+                }
             } catch (e) {
-                console.warn("Audio synth warning:", e);
+                console.log("Audio play blocked by browser policy");
             }
         }
 
-        function playSuccessSound() {
-            if (!soundEnabled) return;
-            playBeep(523.25, 'triangle', 0.1); // C5
-            setTimeout(() => playBeep(659.25, 'triangle', 0.1), 100); // E5
-            setTimeout(() => playBeep(783.99, 'triangle', 0.2), 200); // G5
-        }
+        // State Management
+        let players = [
+            { id: 1, name: 'Front Right', score: 350, color: 'blue' },
+            { id: 2, name: 'Rear Left', score: 280, color: 'purple' },
+            { id: 3, name: 'Rear Right', score: 190, color: 'emerald' }
+        ];
+        let currentTurnPlayerIndex = 0;
 
-        function playErrorSound() {
-            if (!soundEnabled) return;
-            playBeep(220, 'sawtooth', 0.15); // A3
-            setTimeout(() => playBeep(185, 'sawtooth', 0.25), 150);
-        }
-
-        function toggleAudio() {
-            soundEnabled = !soundEnabled;
-            const icon = document.getElementById('audio-icon');
-            const btn = document.getElementById('audio-toggle-btn');
-
-            if (soundEnabled) {
-                btn.className = "p-2.5 rounded-xl bg-black/60 border border-teslaBorder text-teslaCyan hover:border-teslaCyan transition flex items-center justify-center";
-                icon.className = "fa-solid fa-volume-high text-sm";
-                playBeep(600, 'sine', 0.1);
-            } else {
-                btn.className = "p-2.5 rounded-xl bg-black/60 border border-teslaBorder text-gray-500 transition flex items-center justify-center";
-                icon.className = "fa-solid fa-volume-xmark text-sm";
-                if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-            }
-        }
-
-        function speakText(text) {
-            if (!soundEnabled || !('speechSynthesis' in window)) return;
-            try {
-                window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = 1.0;
-                window.speechSynthesis.speak(utterance);
-            } catch(e) {
-                console.warn("Speech Synthesis error:", e);
-            }
-        }
-
-        /* ==========================================================================
-           2. STATE & DATA STRUCTURES
-           ========================================================================== */
-        let state = {
-            activeTab: 'lobby',
-            hudMinimized: false,
-            simulating: true,
-            speed: 68,
-            battery: 78,
-            altitude: 790,
-            activeRouteKey: 'indiana',
-            routeIndex: 0,
-            mapMode: 'leaflet', // 'leaflet' or 'canvas'
-            currentTriviaIndex: 0,
-            activeTriviaPlayerTurn: 0,
-            triviaTimer: 15,
-            triviaTimerInterval: null,
-            players: [
-                { id: 0, name: 'Driver / Alex', seat: 'Driver / Front Left', color: '#3B82F6', score: 0, streak: 0, avatar: 'fa-user-astronaut' },
-                { id: 1, name: 'Co-Pilot / Sam', seat: 'Front Right', color: '#EC4899', score: 0, streak: 0, avatar: 'fa-user-ninja' }
-            ],
-            bingoClaimed: {},
-            scavengerTarget: "Wind Turbine or Solar Farm",
-            scavengerClaimedBy: null,
-            twentyQs: {
-                secretWord: "Supercharger Station",
-                category: "Roadside Landmark",
-                guesserIdx: 1,
-                masterIdx: 0,
-                guessesLeft: 10,
-                history: [
-                    { q: "Is it an electronic structure?", a: "Yes" },
-                    { q: "Is it found near highways?", a: "Yes" }
-                ]
-            }
-        };
-
-        const routes = {
-            indiana: {
-                name: "Midwest I-65 (IN -> IL)",
-                locationLabel: "I-65 N, Crawfordsville, IN",
-                destination: "NAV: Chicago, IL",
-                path: [
-             
+        // TAB SWITCHER
+        function switchTab(tabName) {
+            playSound('click');
+            ['trivia', 'bingo', 'scavenger', 'qu
