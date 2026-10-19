@@ -439,8 +439,14 @@
             alert('Credentials saved securely in your browser local storage!');
         }
 
-        // INITIALIZE APP
+        // INITIALIZE APP & CANVAS MAP
         window.onload = function() {
+            // Restore saved credentials if present
+            const savedToken = localStorage.getItem('tesla_token');
+            const savedVin = localStorage.getItem('tesla_vin');
+            if (savedToken) document.getElementById('tesla-token-input').value = savedToken;
+            if (savedVin) document.getElementById('tesla-vin-input').value = savedVin;
+
             updateLeaderboard();
             const canvas = document.getElementById('map-canvas');
             const ctx = canvas.getContext('2d');
