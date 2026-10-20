@@ -1,1137 +1,620 @@
-```html
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-slate-950 text-slate-100 dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Passage - Tesla Passenger VS Suite</title>
-    <!-- Tailwind CSS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PASSAGE // CYBERPUNK TESLA VS SUITE</title>
+    
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Leaflet CSS for Dark Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
     <script>
         tailwind.config = {
-            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
-                        tesla: {
-                            red: '#e82127',
-                            dark: '#111111',
-                            card: '#18181b',
-                            accent: '#3b82f6',
-                            neon: '#10b981'
-                        }
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif']
+                        cyberCyan: '#00F0FF',
+                        cyberMagenta: '#FF007F',
+                        cyberYellow: '#FFE600',
+                        cyberGreen: '#00FF66',
+                        cyberDark: '#05070B',
+                        cyberPanel: 'rgba(10, 14, 23, 0.92)'
                     }
                 }
             }
         }
     </script>
-    <!-- FontAwesome & Phosphor Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Leaflet JS & CSS for OpenStreetMap -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Animate.css for subtle interactive effects -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 
     <style>
-        /* Custom UI Tweaks & Custom Scrollbars */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
         }
-        ::-webkit-scrollbar-track {
-            background: rgba(15, 23, 42, 0.6);
+
+        body, html {
+            background-color: #05070B;
+            color: #F3F4F6;
+            overflow: hidden;
+            font-family: 'Space Grotesk', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
         }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(51, 65, 85, 0.8);
-            border-radius: 9999px;
+
+        #map {
+            position: absolute;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            background: #05070B;
         }
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(100, 116, 139, 1);
+
+        /* Cyber Dark Styling for Leaflet Map Tiles */
+        .leaflet-layer, .leaflet-control-zoom-in, .leaflet-control-zoom-out {
+            filter: brightness(0.4) invert(1) contrast(3) hue-rotate(185deg) saturate(1.5);
         }
-        .glass-panel {
-            background: rgba(24, 24, 27, 0.75);
+
+        .cyber-panel {
+            background: rgba(8, 12, 20, 0.92);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(0, 240, 255, 0.25);
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(0, 240, 255, 0.05);
         }
-        .glass-panel-accent {
-            background: rgba(30, 41, 59, 0.85);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(59, 130, 246, 0.25);
+
+        .cyber-border-magenta {
+            border-color: rgba(255, 0, 127, 0.4);
+            box-shadow: 0 0 20px rgba(255, 0, 127, 0.15);
         }
-        /* Touch target improvements */
-        .touch-action-none {
+
+        .window-drag-header {
+            cursor: grab;
             touch-action: none;
         }
-        /* Custom Leaflet Dark Mode Tiles Override */
-        .dark-tiles .leaflet-tile-container img {
-            filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+
+        .window-drag-header:active {
+            cursor: grabbing;
         }
-        /* Custom pulse animation for Tesla car marker */
-        @keyframes carPulse {
-            0% { box-shadow: 0 0 0 0 rgba(232, 33, 39, 0.7); }
-            70% { box-shadow: 0 0 0 15px rgba(232, 33, 39, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(232, 33, 39, 0); }
+
+        .cyber-btn {
+            cursor: pointer;
+            touch-action: manipulation;
+            transition: all 0.15s ease;
         }
-        .car-pulse {
-            border-radius: 50%;
-            animation: carPulse 2s infinite;
+        
+        .cyber-btn:active {
+            transform: scale(0.95);
+            filter: brightness(1.3);
+        }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #00F0FF;
+            border-radius: 2px;
         }
     </style>
 </head>
-<body class="h-full w-full overflow-hidden select-none bg-slate-950 text-slate-100 font-sans flex flex-col">
+<body class="antialiased">
 
-    <!-- TOP TELEMETRY HUD BAR -->
-    <header class="h-14 glass-panel border-b border-slate-800 px-4 flex items-center justify-between z-30 shrink-0">
-        <div class="flex items-center space-x-3">
-            <div class="flex items-center space-x-2 text-tesla-red font-bold text-xl tracking-wider">
-                <i class="fa-solid fa-bolt text-lg animate-pulse"></i>
-                <span>PASSAGE</span>
-            </div>
-            <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 hidden sm:inline-block">TESLA PASSENGER VS</span>
-        </div>
+    <!-- LIVE ROUTE MAP -->
+    <div id="map"></div>
 
-        <!-- Live Telemetry Pill Container -->
-        <div class="flex items-center space-x-2 sm:space-x-6 text-xs sm:text-sm">
-            <!-- Speedometer Badge -->
-            <div class="flex items-center space-x-1.5 bg-slate-900/80 px-3 py-1.5 rounded-full border border-slate-700/60">
-                <i class="fa-solid fa-gauge-high text-sky-400"></i>
-                <span class="font-mono text-base font-bold text-sky-300" id="hud-speed">0</span>
-                <span class="text-[10px] text-slate-400 uppercase">MPH</span>
+    <!-- TOP CYBER TELEMETRY & LEADERBOARD BAR -->
+    <header class="absolute top-3 left-3 right-3 z-30 flex flex-col md:flex-row items-center justify-between gap-2 pointer-events-none">
+        <div class="cyber-panel pointer-events-auto rounded-xl px-4 py-2 flex items-center gap-4 text-xs font-mono font-bold w-full md:w-auto justify-between md:justify-start">
+            <div class="flex items-center gap-2 text-cyberCyan tracking-wider">
+                <i class="fa-solid fa-bolt text-cyberYellow animate-pulse"></i>
+                <span>PASSAGE // v3.0</span>
+                <span class="text-[9px] bg-cyberCyan/20 px-1.5 py-0.5 rounded text-cyberCyan border border-cyberCyan/40">CYBER HUD</span>
             </div>
-            <!-- Battery Badge -->
-            <div class="flex items-center space-x-1.5 bg-slate-900/80 px-3 py-1.5 rounded-full border border-slate-700/60">
-                <i class="fa-solid fa-battery-three-quarters text-emerald-400" id="hud-battery-icon"></i>
-                <span class="font-mono font-bold text-emerald-400" id="hud-battery">84%</span>
+            <div class="h-4 w-[1px] bg-cyberCyan/20 hidden sm:block"></div>
+            <div class="flex items-center gap-1.5 text-gray-300">
+                <i class="fa-solid fa-location-crosshairs text-cyberMagenta"></i>
+                <span id="telemetry-location">GPS STANDBY</span>
             </div>
-            <!-- Location Badge -->
-            <div class="hidden md:flex items-center space-x-1.5 bg-slate-900/80 px-3 py-1 rounded-full border border-slate-700/60">
-                <i class="fa-solid fa-location-dot text-rose-400"></i>
-                <span class="font-medium text-slate-300" id="hud-location">Searching GPS...</span>
+            <div class="h-4 w-[1px] bg-cyberCyan/20 hidden sm:block"></div>
+            <div class="flex items-center gap-2">
+                <span id="telemetry-speed" class="text-cyberGreen font-bold text-sm">0 MPH</span>
+                <span id="telemetry-gps-status" class="text-xs text-cyberCyan"><i class="fa-solid fa-satellite text-cyberCyan mr-1"></i>READY</span>
             </div>
         </div>
 
-        <!-- Settings / Players Trigger Button -->
-        <div class="flex items-center space-x-2">
-            <button onclick="openModal('players-modal')" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition-all flex items-center space-x-2 text-xs">
-                <i class="fa-solid fa-users text-indigo-400"></i>
-                <span class="hidden md:inline font-semibold">Players (<span id="player-count-badge">2</span>)</span>
-            </button>
-            <button onclick="openModal('tesla-api-modal')" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition-all text-xs" title="Tesla Fleet API Config">
-                <i class="fa-solid fa-car-side text-tesla-red"></i>
-            </button>
-        </div>
+        <!-- Dynamic Leaderboard Bar -->
+        <div id="header-leaderboard" class="cyber-panel pointer-events-auto rounded-xl px-4 py-2 flex items-center gap-4 text-xs font-mono w-full md:w-auto justify-around"></div>
     </header>
 
-    <!-- MAIN APP CANVAS / DASHBOARD CONTAINER -->
-    <div class="relative flex-1 w-full h-[calc(100vh-3.5rem)] overflow-hidden bg-slate-950 flex">
-
-        <!-- MAP BACKGROUND CONTAINER -->
-        <div id="map-container" class="absolute inset-0 z-0 dark-tiles"></div>
-
-        <!-- FLOATING MAP CONTROLS OVERLAY -->
-        <div class="absolute top-4 left-4 z-10 flex flex-col space-y-2">
-            <button onclick="recenterMap()" class="glass-panel p-3 rounded-xl hover:bg-slate-800/90 text-slate-200 border border-slate-700/80 shadow-lg transition-all active:scale-95 flex items-center space-x-2 text-xs font-semibold">
-                <i class="fa-solid fa-crosshairs text-sky-400 text-base"></i>
-                <span>Recenter Vehicle</span>
-            </button>
+    <!-- WINDOW 1: DRAGGABLE MULTI-MODULE GAME DOCK -->
+    <div id="win-game-dock" class="absolute top-20 left-3 z-20 w-[94vw] md:w-[440px] cyber-panel rounded-2xl flex flex-col">
+        <!-- Window Drag Header -->
+        <div class="window-drag-header px-4 py-3 border-b border-cyberCyan/20 flex items-center justify-between bg-black/60 rounded-t-2xl" onmousedown="dragStart(event, 'win-game-dock')" ontouchstart="dragStart(event, 'win-game-dock')">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-grip-vertical text-cyberCyan/60 text-xs mr-1"></i>
+                <i class="fa-solid fa-gamepad text-cyberCyan"></i>
+                <span class="text-xs font-mono font-bold uppercase tracking-widest text-cyberCyan" id="active-tab-title">PASSENGER SETUP</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="toggleWindow('win-game-dock')" class="text-gray-400 hover:text-cyberMagenta p-1.5 rounded-lg bg-white/5 border border-white/10 cyber-btn">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                </button>
+            </div>
         </div>
 
-        <!-- MAIN WINDOW FLOATING DOCK & CONTAINER -->
-        <main class="relative z-10 flex-1 p-3 sm:p-5 flex flex-col pointer-events-none">
+        <!-- Window Content -->
+        <div class="p-4 space-y-4 max-h-[58vh] overflow-y-auto" id="dock-content">
             
-            <!-- FLOATING DYNAMIC GAME WINDOW -->
-            <div id="game-window" class="pointer-events-auto glass-panel w-full max-w-4xl mx-auto my-auto rounded-2xl shadow-2xl border border-slate-700/80 flex flex-col max-h-[88vh] overflow-hidden transition-all duration-300">
-                
-                <!-- DRAGGABLE WINDOW HEADER / NAVIGATION BAR -->
-                <div id="window-header" class="px-4 py-3 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between cursor-move shrink-0">
-                    <div class="flex items-center space-x-3">
-                        <i id="current-game-icon" class="fa-solid fa-binoculars text-emerald-400 text-lg"></i>
-                        <h2 id="current-game-title" class="font-bold text-base sm:text-lg text-slate-100">Roadside Spotter (Simultaneous)</h2>
-                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold tracking-wide uppercase">Real-Time VS</span>
+            <!-- SECTION 0: PASSENGERS -->
+            <div id="section-players" class="space-y-4">
+                <div class="bg-cyberCyan/10 border border-cyberCyan/30 p-3 rounded-xl text-xs space-y-1">
+                    <div class="font-mono font-bold text-cyberCyan flex items-center gap-1.5">
+                        <i class="fa-solid fa-users"></i>
+                        <span>CONFIGURE VS PASSENGERS</span>
                     </div>
-
-                    <!-- Window Action Controls -->
-                    <div class="flex items-center space-x-2">
-                        <button onclick="toggleWindowMinimize()" class="p-1.5 text-slate-400 hover:text-slate-100 rounded-lg hover:bg-slate-800 transition">
-                            <i class="fa-solid fa-minus text-xs"></i>
-                        </button>
-                        <button onclick="resetGameScores()" class="p-1.5 text-slate-400 hover:text-amber-400 rounded-lg hover:bg-slate-800 transition" title="Reset Current Game">
-                            <i class="fa-solid fa-rotate-right text-xs"></i>
-                        </button>
-                    </div>
+                    <p class="text-gray-300">Enter passenger names to enable multi-player real-time score tracking.</p>
                 </div>
 
-                <!-- LEADERBOARD STRIP (PERSISTENT Across Games) -->
-                <div class="bg-slate-950/70 border-b border-slate-800/80 px-4 py-2 flex items-center justify-between overflow-x-auto gap-4 shrink-0" id="leaderboard-bar">
-                    <!-- Dynamic Leaderboard Items standard structure -->
+                <div class="cyber-panel p-4 rounded-xl space-y-3">
+                    <div class="space-y-2">
+                        <div class="flex gap-2 items-center">
+                            <input type="text" value="Alex" class="p-input flex-1 bg-black/60 border border-cyberCyan/30 rounded-lg px-3 py-2 text-xs text-cyberCyan font-mono focus:outline-none focus:border-cyberCyan" placeholder="Passenger 1 Name">
+                        </div>
+                        <div class="flex gap-2 items-center">
+                            <input type="text" value="Sam" class="p-input flex-1 bg-black/60 border border-cyberCyan/30 rounded-lg px-3 py-2 text-xs text-cyberCyan font-mono focus:outline-none focus:border-cyberCyan" placeholder="Passenger 2 Name">
+                        </div>
+                    </div>
+                    <button onclick="savePlayersAndStart()" class="cyber-btn w-full bg-cyberCyan text-black font-mono font-bold py-2.5 rounded-lg text-xs hover:bg-cyan-300 transition shadow-[0_0_15px_rgba(0,240,255,0.4)]">
+                        INITIALIZE VS MODE
+                    </button>
+                </div>
+            </div>
+
+            <!-- SECTION 1: DYNAMIC TRIVIA -->
+            <div id="section-trivia" class="space-y-4 hidden">
+                <div class="flex items-center justify-between bg-cyberCyan/10 border border-cyberCyan/30 p-2.5 rounded-xl">
+                    <div class="flex items-center gap-2 text-xs text-cyberCyan font-mono font-bold">
+                        <i class="fa-solid fa-trophy text-cyberYellow"></i>
+                        <span>ACTIVE TURN:</span>
+                        <span id="trivia-turn-player" class="text-black bg-cyberCyan px-2 py-0.5 rounded font-bold">Alex</span>
+                    </div>
+                    <div id="trivia-timer" class="font-mono text-xs font-bold text-cyberYellow">15s</div>
                 </div>
 
-                <!-- DYNAMIC CONTENT VIEW BODY -->
-                <div id="window-body" class="p-4 sm:p-6 overflow-y-auto flex-1 bg-slate-900/50">
-                    
-                    <!-- 1. ROADSIDE SPOTTER GAME VIEW -->
-                    <div id="view-spotter" class="game-view space-y-4">
-                        <div class="flex items-center justify-between bg-slate-800/40 p-3 rounded-xl border border-slate-700/50">
-                            <p class="text-xs sm:text-sm text-slate-300">
-                                <i class="fa-solid fa-bolt text-amber-400 mr-1.5"></i>
-                                <strong>Simultaneous Mode Active:</strong> Tap <strong>SPOT</strong> as soon as you see an item. Only that item will disappear & replenish!
-                            </p>
-                        </div>
-
-                        <!-- 3x3 or Responsive Grid for Spotter Cards -->
-                        <div id="spotter-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-                            <!-- Spotter item cards rendered dynamically via JS -->
-                        </div>
+                <div class="cyber-panel p-4 rounded-xl border border-white/10 space-y-3">
+                    <div class="text-[10px] text-cyberCyan font-mono font-bold uppercase tracking-widest flex items-center justify-between">
+                        <span id="trivia-location-tag">DYNAMIC LOCATION TRIVIA</span>
+                        <span class="text-cyberYellow font-mono">+100 PTS</span>
                     </div>
-
-                    <!-- 2. DYNAMIC LOCATION-AWARE TRIVIA VIEW -->
-                    <div id="view-trivia" class="game-view space-y-4 hidden">
-                        <div class="flex items-center justify-between bg-slate-800/40 p-3 rounded-xl border border-slate-700/50">
-                            <div>
-                                <div class="text-xs text-sky-400 font-semibold uppercase tracking-wider">Local GPS Zone</div>
-                                <div class="text-sm font-bold text-slate-100" id="trivia-location-tag">Detecting Location...</div>
-                            </div>
-                            <button onclick="fetchLocalTrivia()" class="px-3 py-1.5 rounded-lg bg-sky-600/30 hover:bg-sky-600/50 text-sky-300 border border-sky-500/30 text-xs font-semibold flex items-center space-x-1.5">
-                                <i class="fa-solid fa-arrows-rotate"></i>
-                                <span>Fresh Question</span>
-                            </button>
-                        </div>
-
-                        <!-- Question Card -->
-                        <div class="glass-panel p-5 rounded-2xl border border-slate-700/80 space-y-4">
-                            <div class="flex items-start justify-between">
-                                <span class="text-xs px-2.5 py-1 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-semibold" id="trivia-category">Geography & Landmarks</span>
-                                <span class="text-xs text-amber-400 font-bold" id="trivia-points">+100 PTS</span>
-                            </div>
-                            <h3 class="text-lg sm:text-xl font-bold text-slate-100 leading-snug" id="trivia-question-text">
-                                Loading trivia question based on your route...
-                            </h3>
-                            
-                            <!-- Options Grid -->
-                            <div id="trivia-options-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                                <!-- Options dynamically rendered -->
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 3. LICENSE PLATE BINGO VIEW -->
-                    <div id="view-bingo" class="game-view space-y-4 hidden">
-                        <div class="flex items-center justify-between bg-slate-800/40 p-3 rounded-xl border border-slate-700/50">
-                            <span class="text-xs sm:text-sm text-slate-300">Tap states as you spot their license plates out the window to claim grid tiles!</span>
-                            <button onclick="resetBingoBoard()" class="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-xs font-semibold">
-                                New Board
-                            </button>
-                        </div>
-
-                        <!-- 3x3 Bingo Grid -->
-                        <div id="bingo-grid" class="grid grid-cols-3 gap-2 sm:gap-3 max-w-lg mx-auto">
-                            <!-- Rendered by JS -->
-                        </div>
-                    </div>
-
-                    <!-- 4. SPEEDOMETER SWEEP VIEW -->
-                    <div id="view-speedometer" class="game-view space-y-5 hidden">
-                        <div class="text-center space-y-2">
-                            <h3 class="text-xl font-bold text-slate-100">Speedometer Sweep Duel</h3>
-                            <p class="text-xs text-slate-400">Lock in your exact speed prediction for 10 seconds from now!</p>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <!-- Current Live Speed Display -->
-                            <div class="glass-panel p-4 rounded-2xl text-center space-y-1 flex flex-col items-center justify-center border border-slate-700/80">
-                                <span class="text-xs text-slate-400 uppercase tracking-widest font-semibold">Current Telemetry Speed</span>
-                                <div class="text-5xl font-mono font-extrabold text-sky-400 py-2" id="speedometer-live-display">0</div>
-                                <span class="text-xs text-slate-400">MILES PER HOUR</span>
-                            </div>
-
-                            <!-- Prediction Controls -->
-                            <div class="glass-panel p-4 rounded-2xl border border-slate-700/80 space-y-3 flex flex-col justify-between">
-                                <span class="text-xs font-bold text-indigo-400 uppercase tracking-wider">Submit Your Target Prediction</span>
-                                <div id="speedometer-player-inputs" class="space-y-2">
-                                    <!-- Dynamic Inputs per Player -->
-                                </div>
-                                <button onclick="startSpeedDuelCountdown()" id="btn-start-speed-duel" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-indigo-600 text-white font-bold text-sm shadow-lg hover:brightness-110 active:scale-95 transition">
-                                    Lock Predictions & Start 10s Timer
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Duel Timer / Results Panel -->
-                        <div id="speedometer-status-panel" class="hidden glass-panel p-4 rounded-2xl border border-amber-500/40 text-center space-y-2">
-                            <div id="speedometer-timer" class="text-2xl font-mono font-bold text-amber-400">10</div>
-                            <div id="speedometer-result-text" class="text-sm font-semibold text-slate-200">Measuring live telemetry speed...</div>
-                        </div>
-                    </div>
-
-                    <!-- 5. ALPHABET CHAIN DUEL VIEW -->
-                    <div id="view-alphabet" class="game-view space-y-4 hidden">
-                        <div class="glass-panel p-4 rounded-2xl border border-slate-700/80 space-y-4 text-center">
-                            <div class="space-y-1">
-                                <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Current Active Target Letter</span>
-                                <div id="alphabet-current-letter" class="text-6xl font-extrabold font-mono text-emerald-400 py-1">A</div>
-                                <p class="text-xs text-slate-300">Spot a roadside sign, store, or license plate starting with this letter!</p>
-                            </div>
-
-                            <div class="flex items-center justify-center space-x-2 pt-2">
-                                <input type="text" id="alphabet-word-input" placeholder="e.g. ARBY'S, AUDI, ALABAMA" class="bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm font-mono text-slate-100 focus:outline-none focus:border-emerald-500 w-64 uppercase tracking-wider">
-                            </div>
-
-                            <div id="alphabet-passenger-buttons" class="flex flex-wrap justify-center gap-2 pt-2">
-                                <!-- Passenger claim buttons -->
-                            </div>
-                        </div>
-
-                        <!-- Chain Progress Track -->
-                        <div class="glass-panel p-4 rounded-2xl border border-slate-700/80 space-y-2">
-                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Alphabet Race History</span>
-                            <div id="alphabet-history" class="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto pt-1">
-                                <!-- History items -->
-                            </div>
-                        </div>
-                    </div>
-
+                    <p id="trivia-question-text" class="text-xs font-medium text-white leading-relaxed">
+                        Loading route trivia...
+                    </p>
+                    <div class="grid grid-cols-1 gap-2" id="trivia-options-container"></div>
                 </div>
+            </div>
 
-                <!-- BOTTOM MODULE SWITCHER NAVBAR (Tesla Style Bottom Dock) -->
-                <div class="bg-slate-950 border-t border-slate-800 p-2 flex items-center justify-around shrink-0 overflow-x-auto gap-2">
-                    <button onclick="switchGameTab('spotter')" id="tab-spotter" class="game-tab flex-1 min-w-[75px] py-2 px-3 rounded-xl flex flex-col items-center justify-center text-xs font-medium transition bg-slate-800 text-sky-400 border border-sky-500/30">
-                        <i class="fa-solid fa-binoculars text-base mb-1"></i>
-                        <span>Spotter</span>
-                    </button>
-                    <button onclick="switchGameTab('trivia')" id="tab-trivia" class="game-tab flex-1 min-w-[75px] py-2 px-3 rounded-xl flex flex-col items-center justify-center text-xs font-medium text-slate-400 hover:text-slate-200 transition">
-                        <i class="fa-solid fa-lightbulb text-base mb-1"></i>
-                        <span>Trivia</span>
-                    </button>
-                    <button onclick="switchGameTab('bingo')" id="tab-bingo" class="game-tab flex-1 min-w-[75px] py-2 px-3 rounded-xl flex flex-col items-center justify-center text-xs font-medium text-slate-400 hover:text-slate-200 transition">
-                        <i class="fa-solid fa-table-cells text-base mb-1"></i>
-                        <span>Bingo</span>
-                    </button>
-                    <button onclick="switchGameTab('speedometer')" id="tab-speedometer" class="game-tab flex-1 min-w-[75px] py-2 px-3 rounded-xl flex flex-col items-center justify-center text-xs font-medium text-slate-400 hover:text-slate-200 transition">
-                        <i class="fa-solid fa-gauge text-base mb-1"></i>
-                        <span>Speed Sweep</span>
-                    </button>
-                    <button onclick="switchGameTab('alphabet')" id="tab-alphabet" class="game-tab flex-1 min-w-[75px] py-2 px-3 rounded-xl flex flex-col items-center justify-center text-xs font-medium text-slate-400 hover:text-slate-200 transition">
-                        <i class="fa-solid fa-font text-base mb-1"></i>
-                        <span>A-Z Chain</span>
+            <!-- SECTION 2: BINGO -->
+            <div id="section-bingo" class="space-y-4 hidden">
+                <div class="text-xs text-gray-400 font-mono mb-2">Tap state plates spotted out the window:</div>
+                <div class="grid grid-cols-3 gap-2" id="bingo-grid"></div>
+            </div>
+
+            <!-- SECTION 3: REAL-TIME SIMULTANEOUS SPOTTER -->
+            <div id="section-scavenger" class="space-y-4 hidden">
+                <div class="bg-cyberMagenta/10 border border-cyberMagenta/30 p-2.5 rounded-xl text-xs font-mono text-cyberMagenta flex items-center gap-2">
+                    <i class="fa-solid fa-bolt"></i>
+                    <span>SIMULTANEOUS SPOT: First person to tap claims points!</span>
+                </div>
+                <div id="scavenger-list" class="space-y-2"></div>
+            </div>
+
+            <!-- SECTION 4: GPS & CONFIG -->
+            <div id="section-setup" class="space-y-4 hidden">
+                <div class="bg-cyberGreen/10 border border-cyberGreen/30 p-3 rounded-xl text-xs space-y-2">
+                    <div class="font-mono font-bold text-cyberGreen flex items-center gap-1.5">
+                        <i class="fa-solid fa-satellite-dish"></i>
+                        <span>LIVE BROWSER GPS SYNC</span>
+                    </div>
+                    <p class="text-gray-300 leading-relaxed">
+                        Connects your Tesla browser's native location hardware directly to the map engine:
+                    </p>
+                    <button onclick="enableBrowserGps()" class="cyber-btn w-full bg-cyberGreen text-black font-mono font-bold py-2.5 rounded-lg hover:bg-emerald-400 transition shadow-[0_0_15px_rgba(0,255,102,0.3)]">
+                        ACTIVATE CAR LIVE GPS
                     </button>
                 </div>
 
-            </div>
-        </main>
-    </div>
-
-    <!-- MODAL 1: PASSENGER MANAGEMENT MODAL -->
-    <div id="players-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
-        <div class="glass-panel w-full max-w-md rounded-2xl border border-slate-700 shadow-2xl p-6 space-y-5">
-            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h3 class="text-lg font-bold text-slate-100 flex items-center space-x-2">
-                    <i class="fa-solid fa-users text-indigo-400"></i>
-                    <span>Manage Road Trip Passengers</span>
-                </h3>
-                <button onclick="closeModal('players-modal')" class="text-slate-400 hover:text-slate-200 p-1">
-                    <i class="fa-solid fa-xmark text-lg"></i>
-                </button>
+                <div class="cyber-panel p-4 rounded-xl space-y-3 text-xs">
+                    <div class="font-mono font-bold text-cyberCyan text-xs uppercase">Tesla Fleet API (Optional)</div>
+                    <p class="text-gray-400">Stores SSO token locally in browser storage for extended telemetry stats:</p>
+                    <div class="space-y-2 font-mono">
+                        <input id="tesla-token-input" type="password" placeholder="Access Token..." class="w-full bg-black/60 border border-white/10 rounded-lg px-3 py-2 text-xs text-white">
+                        <input id="tesla-vin-input" type="text" placeholder="Vehicle VIN..." class="w-full bg-black/60 border border-white/10 rounded-lg px-3 py-2 text-xs text-white">
+                        <button onclick="saveTeslaCredentials()" class="cyber-btn w-full bg-cyberMagenta text-white font-mono font-bold py-2 rounded-lg hover:bg-pink-600 transition">Save Credentials</button>
+                    </div>
+                </div>
             </div>
 
-            <!-- Player List -->
-            <div id="modal-players-list" class="space-y-2 max-h-60 overflow-y-auto">
-                <!-- JS populated -->
-            </div>
-
-            <!-- Add Player Form -->
-            <div class="flex items-center space-x-2">
-                <input type="text" id="new-player-name" placeholder="Passenger Name..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
-                <button onclick="addPassenger()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition">
-                    Add
-                </button>
-            </div>
-
-            <div class="pt-2 border-t border-slate-800 flex justify-end">
-                <button onclick="closeModal('players-modal')" class="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs">
-                    Done
-                </button>
-            </div>
         </div>
-    </div>
 
-    <!-- MODAL 2: ITEM CLAIM PASSENGER PICKER (For Spotter Game) -->
-    <div id="claim-picker-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
-        <div class="glass-panel w-full max-w-sm rounded-2xl border border-slate-700 shadow-2xl p-5 space-y-4 text-center">
-            <div class="space-y-1">
-                <span class="text-xs font-bold text-sky-400 uppercase tracking-widest">Roadside Spot Claim</span>
-                <h3 class="text-lg font-bold text-slate-100" id="claim-item-title">Spotted Object</h3>
-                <p class="text-xs text-slate-400">Who spotted this item first out the window?</p>
-            </div>
-
-            <div id="claim-passengers-container" class="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto py-1">
-                <!-- Dynamically filled with player buttons -->
-            </div>
-
-            <button onclick="closeModal('claim-picker-modal')" class="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-semibold">
-                Cancel
+        <!-- Navigation Tabs Bar -->
+        <div class="p-2 border-t border-cyberCyan/20 bg-black/80 rounded-b-2xl flex items-center justify-around gap-1 text-[10px] font-mono">
+            <button onclick="openTab('players')" id="nav-btn-players" class="cyber-btn flex-1 py-2 rounded-xl flex flex-col items-center gap-1 font-bold text-cyberCyan bg-cyberCyan/10 border border-cyberCyan/30">
+                <i class="fa-solid fa-users text-sm"></i>
+                <span>Players</span>
+            </button>
+            <button onclick="openTab('trivia')" id="nav-btn-trivia" class="cyber-btn flex-1 py-2 rounded-xl flex flex-col items-center gap-1 font-bold text-gray-400">
+                <i class="fa-solid fa-bolt text-sm"></i>
+                <span>Trivia</span>
+            </button>
+            <button onclick="openTab('bingo')" id="nav-btn-bingo" class="cyber-btn flex-1 py-2 rounded-xl flex flex-col items-center gap-1 font-bold text-gray-400">
+                <i class="fa-solid fa-border-all text-sm"></i>
+                <span>Bingo</span>
+            </button>
+            <button onclick="openTab('scavenger')" id="nav-btn-scavenger" class="cyber-btn flex-1 py-2 rounded-xl flex flex-col items-center gap-1 font-bold text-gray-400">
+                <i class="fa-solid fa-eye text-sm"></i>
+                <span>Spotter</span>
+            </button>
+            <button onclick="openTab('setup')" id="nav-btn-setup" class="cyber-btn flex-1 py-2 rounded-xl flex flex-col items-center gap-1 font-bold text-gray-400">
+                <i class="fa-solid fa-gear text-sm"></i>
+                <span>GPS</span>
             </button>
         </div>
     </div>
 
-    <!-- MODAL 3: TESLA FLEET API & GPS CONFIG -->
-    <div id="tesla-api-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
-        <div class="glass-panel w-full max-w-lg rounded-2xl border border-slate-700 shadow-2xl p-6 space-y-5">
-            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h3 class="text-lg font-bold text-slate-100 flex items-center space-x-2">
-                    <i class="fa-solid fa-car text-tesla-red"></i>
-                    <span>Tesla Telemetry & GPS Sync</span>
-                </h3>
-                <button onclick="closeModal('tesla-api-modal')" class="text-slate-400 hover:text-slate-200 p-1">
-                    <i class="fa-solid fa-xmark text-lg"></i>
-                </button>
+    <!-- WINDOW 2: DRAGGABLE TELEMETRY HUD -->
+    <div id="win-telemetry-hud" class="absolute top-20 right-3 z-20 w-[90vw] md:w-[320px] cyber-panel cyber-border-magenta rounded-2xl flex flex-col">
+        <div class="window-drag-header px-4 py-3 border-b border-cyberMagenta/20 flex items-center justify-between bg-black/60 rounded-t-2xl" onmousedown="dragStart(event, 'win-telemetry-hud')" ontouchstart="dragStart(event, 'win-telemetry-hud')">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-grip-vertical text-cyberMagenta/60 text-xs mr-1"></i>
+                <i class="fa-solid fa-gauge-high text-cyberMagenta"></i>
+                <span class="text-xs font-mono font-bold uppercase tracking-widest text-cyberMagenta">TELEMETRY HUD</span>
             </div>
-
-            <div class="space-y-4 text-xs">
-                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 space-y-2">
-                    <div class="flex items-center justify-between">
-                        <span class="font-bold text-slate-200">Browser Geolocation Tracking</span>
-                        <input type="checkbox" id="toggle-browser-gps" checked onchange="toggleGPSMode()" class="w-4 h-4 rounded text-tesla-red focus:ring-0">
-                    </div>
-                    <p class="text-slate-400">Uses HTML5 Geolocation API to mirror speed and location directly from vehicle's mobile browser.</p>
-                </div>
-
-                <div class="space-y-3 pt-1">
-                    <span class="font-bold text-slate-200 block text-sm">Tesla Fleet API Sync (Optional Credentials)</span>
-                    <div class="space-y-2">
-                        <label class="block text-slate-400">Tesla Access Token / API Key</label>
-                        <input type="password" id="tesla-api-token" placeholder="eyJhbGciOiJSUzI1NiIs..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-tesla-red">
-                    </div>
-                    <div class="space-y-2">
-                        <label class="block text-slate-400">Vehicle VIN / ID</label>
-                        <input type="text" id="tesla-vin" placeholder="5YJ3E1EA8KF......" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-tesla-red">
-                    </div>
-                </div>
+            <button onclick="toggleWindow('win-telemetry-hud')" class="text-gray-400 hover:text-white p-1 rounded cyber-btn">
+                <i class="fa-solid fa-xmark text-xs"></i>
+            </button>
+        </div>
+        <div class="p-4 space-y-3 text-xs font-mono">
+            <div class="flex items-center justify-between bg-black/40 p-2.5 rounded-xl border border-white/10">
+                <span class="text-gray-400">SPEED TELEMETRY</span>
+                <span id="hud-speed" class="font-bold text-cyberGreen text-sm">0 MPH</span>
             </div>
-
-            <div class="pt-3 border-t border-slate-800 flex justify-between items-center">
-                <button onclick="simulateTelemetrySpeed()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-400 font-semibold text-xs border border-sky-500/20">
-                    Simulate Demo Speed
-                </button>
-                <button onclick="saveTeslaApiConfig()" class="px-5 py-2 rounded-xl bg-tesla-red hover:bg-red-600 text-white font-semibold text-xs shadow-lg transition">
-                    Save Config
-                </button>
+            <div class="flex items-center justify-between bg-black/40 p-2.5 rounded-xl border border-white/10">
+                <span class="text-gray-400">COORDINATES</span>
+                <span id="hud-coords" class="text-cyberCyan text-[11px]">40.042, -86.899</span>
+            </div>
+            <div class="flex items-center justify-between bg-black/40 p-2.5 rounded-xl border border-white/10">
+                <span class="text-gray-400">EST. BATTERY (SoC)</span>
+                <span id="hud-soc" class="text-cyberYellow font-bold text-xs"><i class="fa-solid fa-battery-three-quarters mr-1"></i>78%</span>
             </div>
         </div>
     </div>
 
-    <!-- JAVASCRIPT APPLICATION LOGIC -->
+    <!-- PLAYER SELECTION MODAL FOR SPOTTER GAME -->
+    <div id="spotter-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="cyber-panel p-6 rounded-2xl w-full max-w-sm space-y-4 text-center border border-cyberMagenta">
+            <div class="text-cyberMagenta font-mono font-bold text-sm uppercase">WHO SPOTTED IT FIRST?</div>
+            <p id="spotter-modal-item-name" class="text-white font-bold text-base"></p>
+            <div id="spotter-modal-players" class="grid grid-cols-1 gap-2"></div>
+            <button onclick="closeSpotterModal()" class="cyber-btn w-full bg-white/10 text-gray-400 py-2 rounded-lg text-xs font-mono">Cancel</button>
+        </div>
+    </div>
+
+    <!-- BOTTOM TASKBAR LAUNCHER -->
+    <div class="absolute bottom-4 left-4 z-30 flex items-center gap-2">
+        <button onclick="toggleWindow('win-game-dock')" class="cyber-panel px-3.5 py-2 rounded-xl text-xs font-mono font-bold text-cyberCyan flex items-center gap-2 border border-cyberCyan/40 cyber-btn shadow-[0_0_15px_rgba(0,240,255,0.2)]">
+            <i class="fa-solid fa-gamepad"></i>
+            <span>GAMES DOCK</span>
+        </button>
+        <button onclick="toggleWindow('win-telemetry-hud')" class="cyber-panel px-3.5 py-2 rounded-xl text-xs font-mono font-bold text-cyberMagenta flex items-center gap-2 border border-cyberMagenta/40 cyber-btn shadow-[0_0_15px_rgba(255,0,127,0.2)]">
+            <i class="fa-solid fa-gauge-high"></i>
+            <span>HUD</span>
+        </button>
+    </div>
+
+    <!-- Leaflet JS CDN -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <script>
-        /* ==========================================================================
-           1. MASTER APPLICATION STATE & LOCAL STORAGE INITIALIZATION
-           ========================================================================== */
-        const APP_STATE = {
-            players: [
-                { id: 1, name: 'Alex (Front)', score: 0, color: 'sky' },
-                { id: 2, name: 'Sam (Back L)', score: 0, color: 'emerald' },
-                { id: 3, name: 'Jordan (Back R)', score: 0, color: 'amber' }
-            ],
-            telemetry: {
-                lat: 39.8283,
-                lng: -98.5795,
-                speed: 68,
-                battery: 84,
-                locationName: 'Indiana, USA',
-                gpsActive: true
-            },
-            currentGameTab: 'spotter',
-            pendingSpotterIndex: null,
-            // Spotter Active Items Grid (6 Items visible)
-            spotterActiveGrid: [],
-            // License Plate Bingo Board State (3x3)
-            bingoBoard: [],
-            // Speedometer Sweep Duel State
-            speedDuel: {
-                active: false,
-                predictions: {},
-                countdown: 10,
-                interval: null
-            },
-            // Alphabet Chain State
-            alphabet: {
-                currentIndex: 0,
-                history: []
-            }
-        };
+        // GLOBAL GAME & MAP STATE
+        let players = [{ name: 'Alex', score: 100 }, { name: 'Sam', score: 100 }];
+        let currentTurnIdx = 0;
+        let map, carMarker, routeLine;
+        let routeCoordinates = [];
+        let activeSpotterItemIndex = null;
 
-        // Master Road Trip Spotter Item Pool (Large pool for individual replacements)
-        const MASTER_SPOTTER_POOL = [
-            { id: 1, name: 'Yellow Car', pts: 50, icon: 'fa-car' },
-            { id: 2, name: 'Wind Turbine', pts: 100, icon: 'fa-wind' },
-            { id: 3, name: 'Water Tower', pts: 80, icon: 'fa-faucet-drip' },
-            { id: 4, name: 'Tesla Supercharger', pts: 150, icon: 'fa-charging-station' },
-            { id: 5, name: 'Semi Truck (Red)', pts: 60, icon: 'fa-truck-front' },
-            { id: 6, name: 'Bridge / Overpass', pts: 40, icon: 'fa-bridge' },
-            { id: 7, name: 'Solar Farm', pts: 120, icon: 'fa-solar-panel' },
-            { id: 8, name: 'Police Cruiser', pts: 100, icon: 'fa-shield-halved' },
-            { id: 9, name: 'Billboard with Dog', pts: 90, icon: 'fa-dog' },
-            { id: 10, name: 'Convertible Top Down', pts: 110, icon: 'fa-car-side' },
-            { id: 11, name: 'Horse or Cow Pasture', pts: 50, icon: 'fa-cow' },
-            { id: 12, name: 'Construction Cone', pts: 30, icon: 'fa-triangle-exclamation' },
-            { id: 13, name: 'Motorcycle Group', pts: 100, icon: 'fa-motorcycle' },
-            { id: 14, name: 'Train / Railway', pts: 150, icon: 'fa-train' },
-            { id: 15, name: 'Rest Stop Sign', pts: 40, icon: 'fa-restroom' },
-            { id: 16, name: 'License Plate Out-of-State', pts: 70, icon: 'fa-id-card' },
-            { id: 17, name: 'Classic / Vintage Car', pts: 130, icon: 'fa-car-rear' },
-            { id: 18, name: 'Tesla Cybertruck', pts: 200, icon: 'fa-cube' }
+        // DYNAMIC TRIVIA POOL
+        const triviaQuestions = [
+            {
+                q: "You are traveling through Indiana's historic I-65 corridor. Which famous author wrote 'Ben-Hur' in Crawfordsville?",
+                options: ["Lew Wallace", "Mark Twain", "James Whitcomb Riley", "Kurt Vonnegut"],
+                correct: 0
+            },
+            {
+                q: "What year did President Eisenhower sign the Federal-Aid Highway Act creating the U.S. Interstate System?",
+                options: ["1948", "1956", "1962", "1970"],
+                correct: 1
+            },
+            {
+                q: "Which state license plate motto features the phrase 'The Crossroads of America'?",
+                options: ["Ohio", "Illinois", "Indiana", "Kentucky"],
+                correct: 2
+            }
+        ];
+        let currentQuestionIdx = 0;
+
+        // SPOTTER ITEM POOL
+        let activeSpotterItems = [
+            "Wind Turbine Farm",
+            "Red Barn with Silo",
+            "Semi-Truck carrying Tesla Vehicles",
+            "Water Tower with Town Name",
+            "Bridge crossing River"
+        ];
+        const masterSpotterPool = [
+            "Police Cruiser in Median",
+            "Classic Vintage Muscle Car",
+            "Train / Freight Railway",
+            "Solar Panel Field",
+            "Construction Zone Cone Trail",
+            "Billboard advertising Diner",
+            "Supercharger Station Sign"
         ];
 
-        // US States for Bingo
-        const US_STATES = [
-            'California', 'Texas', 'Florida', 'New York', 'Ohio', 'Illinois',
-            'Indiana', 'Georgia', 'Michigan', 'North Carolina', 'Washington',
-            'Colorado', 'Arizona', 'Tennessee', 'Missouri', 'Wisconsin'
-        ];
+        // TOUCH & MOUSE WINDOW DRAGGING SYSTEM
+        let activeDragWin = null;
+        let dragOffsetX = 0, dragOffsetY = 0;
 
-        // Dynamic Local Trivia Database mapped by State/Region key
-        const TRIVIA_DATABASE = {
-            'Indiana': [
-                { q: "Indiana is world-famous for hosting which legendary motorsport event?", a: ["Indy 500", "Daytona 500", "Monaco GP", "Le Mans"], correct: 0 },
-                { q: "What is the official state nickname of Indiana?", a: ["The Hoosier State", "The Buckeye State", "The Prairie State", "The Bluegrass State"], correct: 0 }
-            ],
-            'Illinois': [
-                { q: "Which iconic road trip highway traditionally begins in downtown Chicago, Illinois?", a: ["Route 66", "Pacific Coast Hwy", "Blue Ridge Pkwy", "I-95"], correct: 0 },
-                { q: "What skyscraper in Chicago was once the tallest building in the world?", a: ["Willis (Sears) Tower", "Empire State", "Chrysler Building", "Space Needle"], correct: 0 }
-            ],
-            'Default': [
-                { q: "What year did Tesla introduce the Model 3 electric sedan?", a: ["2017", "2015", "2019", "2021"], correct: 0 },
-                { q: "Which US interstate highway is the longest continuous coast-to-coast route?", a: ["I-90", "I-80", "I-10", "I-40"], correct: 0 },
-                { q: "What vehicle speed does Autopilot require to display steering alignment calibration?", a: ["30+ MPH", "10+ MPH", "50+ MPH", "70+ MPH"], correct: 0 },
-                { q: "Which US national park features the famous 'Old Faithful' geyser?", a: ["Yellowstone", "Yosemite", "Zion", "Grand Canyon"], correct: 0 }
-            ]
-        };
+        function dragStart(e, winId) {
+            activeDragWin = document.getElementById(winId);
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const rect = activeDragWin.getBoundingClientRect();
+            dragOffsetX = clientX - rect.left;
+            dragOffsetY = clientY - rect.top;
 
-        /* ==========================================================================
-           2. LEAFLET MAP & TELEMETRY ENGINE
-           ========================================================================== */
-        let map, carMarker, routePolyline;
-        const routeHistory = [];
-
-        function initMap() {
-            // Center default US
-            map = L.map('map-container', {
-                zoomControl: false,
-                attributionControl: false
-            }).setView([APP_STATE.telemetry.lat, APP_STATE.telemetry.lng], 13);
-
-            // OpenStreetMap Dark Tile Layer
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19
-            }).addTo(map);
-
-            // Custom Pulsing Tesla Icon Marker
-            const carIcon = L.divIcon({
-                className: 'car-marker-container',
-                html: `<div class="w-8 h-8 rounded-full bg-tesla-red border-2 border-white flex items-center justify-center text-white shadow-xl car-pulse">
-                         <i class="fa-solid fa-car-side text-xs"></i>
-                       </div>`,
-                iconSize: [32, 32],
-                iconAnchor: [16, 16]
-            });
-
-            carMarker = L.marker([APP_STATE.telemetry.lat, APP_STATE.telemetry.lng], { icon: carIcon }).addTo(map);
-            routePolyline = L.polyline([], { color: '#3b82f6', weight: 4, opacity: 0.8 }).addTo(map);
-
-            initGeolocationTracking();
+            document.addEventListener('mousemove', dragMove);
+            document.addEventListener('mouseup', dragEnd);
+            document.addEventListener('touchmove', dragMove, { passive: false });
+            document.addEventListener('touchend', dragEnd);
         }
 
-        function recenterMap() {
-            if (map && carMarker) {
-                map.panTo(carMarker.getLatLng(), { animate: true });
-            }
-        }
-
-        function updateTelemetryDisplay() {
-            document.getElementById('hud-speed').innerText = Math.round(APP_STATE.telemetry.speed);
-            document.getElementById('hud-battery').innerText = `${APP_STATE.telemetry.battery}%`;
-            document.getElementById('hud-location').innerText = APP_STATE.telemetry.locationName;
+        function dragMove(e) {
+            if (!activeDragWin) return;
+            if (e.preventDefault) e.preventDefault();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
             
-            // Speedometer Game Live Display Sync
-            const speedLive = document.getElementById('speedometer-live-display');
-            if (speedLive) speedLive.innerText = Math.round(APP_STATE.telemetry.speed);
+            let newX = clientX - dragOffsetX;
+            let newY = clientY - dragOffsetY;
+
+            newX = Math.max(10, Math.min(newX, window.innerWidth - activeDragWin.offsetWidth - 10));
+            newY = Math.max(10, Math.min(newY, window.innerHeight - activeDragWin.offsetHeight - 10));
+
+            activeDragWin.style.left = newX + 'px';
+            activeDragWin.style.top = newY + 'px';
+            activeDragWin.style.right = 'auto';
         }
 
-        function initGeolocationTracking() {
-            if ('geolocation' in navigator && APP_STATE.telemetry.gpsActive) {
+        function dragEnd() {
+            activeDragWin = null;
+            document.removeEventListener('mousemove', dragMove);
+            document.removeEventListener('mouseup', dragEnd);
+            document.removeEventListener('touchmove', dragMove);
+            document.removeEventListener('touchend', dragEnd);
+        }
+
+        function toggleWindow(winId) {
+            const win = document.getElementById(winId);
+            win.classList.toggle('hidden');
+        }
+
+        function updateLeaderboard() {
+            const bar = document.getElementById('header-leaderboard');
+            bar.innerHTML = '';
+            players.forEach((p, idx) => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center gap-2';
+                div.innerHTML = `
+                    <span class="w-2.5 h-2.5 rounded-full ${idx === 0 ? 'bg-cyberCyan' : idx === 1 ? 'bg-cyberMagenta' : 'bg-cyberGreen'}"></span>
+                    <span class="font-bold text-gray-200">${p.name}:</span>
+                    <span class="text-cyberCyan font-bold">${p.score} pts</span>
+                `;
+                bar.appendChild(div);
+            });
+            if (players.length > 0) {
+                document.getElementById('trivia-turn-player').innerText = players[currentTurnIdx].name;
+            }
+        }
+
+        function savePlayersAndStart() {
+            const names = document.querySelectorAll('.p-input');
+            players = [];
+            names.forEach(n => {
+                if (n.value.trim()) players.push({ name: n.value.trim(), score: 100 });
+            });
+            if (players.length === 0) players.push({ name: 'Player 1', score: 100 });
+            updateLeaderboard();
+            openTab('trivia');
+            renderTriviaQuestion();
+        }
+
+        function openTab(tabName) {
+            ['players', 'trivia', 'bingo', 'scavenger', 'setup'].forEach(tab => {
+                const sec = document.getElementById('section-' + tab);
+                const btn = document.getElementById('nav-btn-' + tab);
+                if (sec) sec.classList.toggle('hidden', tab !== tabName);
+                if (btn) btn.classList.toggle('text-cyberCyan', tab === tabName);
+            });
+            document.getElementById('active-tab-title').innerText = tabName.toUpperCase();
+        }
+
+        // TRIVIA RENDER & ANSWER
+        function renderTriviaQuestion() {
+            const qData = triviaQuestions[currentQuestionIdx];
+            document.getElementById('trivia-question-text').innerText = qData.q;
+            const container = document.getElementById('trivia-options-container');
+            container.innerHTML = '';
+            qData.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'cyber-btn w-full text-left p-3 rounded-xl bg-black/40 border border-cyberCyan/20 hover:border-cyberCyan text-xs font-mono text-gray-200';
+                btn.innerText = `${String.fromCharCode(65 + idx)}) ${opt}`;
+                btn.onclick = () => handleTriviaAnswer(idx === qData.correct);
+                container.appendChild(btn);
+            });
+        }
+
+        function handleTriviaAnswer(isCorrect) {
+            if (isCorrect) {
+                players[currentTurnIdx].score += 100;
+                alert(`Correct! +100 PTS awarded to ${players[currentTurnIdx].name}!`);
+            } else {
+                alert('Incorrect answer!');
+            }
+            currentTurnIdx = (currentTurnIdx + 1) % players.length;
+            currentQuestionIdx = (currentQuestionIdx + 1) % triviaQuestions.length;
+            updateLeaderboard();
+            renderTriviaQuestion();
+        }
+
+        // SPOTTER GAME (Real-time simultaneous item claim)
+        function renderSpotterList() {
+            const container = document.getElementById('scavenger-list');
+            container.innerHTML = '';
+            activeSpotterItems.forEach((item, idx) => {
+                const div = document.createElement('div');
+                div.className = 'cyber-panel p-3 rounded-xl flex items-center justify-between text-xs font-mono';
+                div.innerHTML = `
+                    <span class="text-gray-200 font-bold">${item}</span>
+                    <button onclick="openSpotterModal(${idx})" class="cyber-btn bg-cyberMagenta/20 border border-cyberMagenta text-cyberMagenta font-bold px-3 py-1.5 rounded-lg text-[10px]">
+                        I SPOT IT!
+                    </button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function openSpotterModal(itemIdx) {
+            activeSpotterItemIndex = itemIdx;
+            document.getElementById('spotter-modal-item-name').innerText = activeSpotterItems[itemIdx];
+            const pContainer = document.getElementById('spotter-modal-players');
+            pContainer.innerHTML = '';
+            players.forEach((p, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'cyber-btn w-full bg-cyberMagenta text-white font-mono font-bold py-2.5 rounded-lg text-xs hover:bg-pink-600 transition';
+                btn.innerText = p.name;
+                btn.onclick = () => claimSpotterItem(idx);
+                pContainer.appendChild(btn);
+            });
+            document.getElementById('spotter-modal').classList.remove('hidden');
+        }
+
+        function closeSpotterModal() {
+            document.getElementById('spotter-modal').classList.add('hidden');
+        }
+
+        function claimSpotterItem(playerIdx) {
+            players[playerIdx].score += 50;
+            updateLeaderboard();
+            
+            // Replace ONLY the claimed item with a fresh item from the master pool
+            if (masterSpotterPool.length > 0) {
+                const newItem = masterSpotterPool.shift();
+                activeSpotterItems[activeSpotterItemIndex] = newItem;
+            } else {
+                activeSpotterItems.splice(activeSpotterItemIndex, 1);
+            }
+            
+            closeSpotterModal();
+            renderSpotterList();
+        }
+
+        // BINGO GRID GENERATION
+        const states = ['IN', 'IL', 'OH', 'KY', 'MI', 'WI', 'IA', 'MO', 'TN'];
+        const bingoGrid = document.getElementById('bingo-grid');
+        states.forEach(st => {
+            const btn = document.createElement('button');
+            btn.className = 'cyber-btn cyber-panel p-3 rounded-xl flex flex-col items-center justify-center font-mono font-bold text-xs text-gray-200';
+            btn.innerHTML = `<span class="text-[9px] text-gray-500">PLATE</span><span class="text-base text-cyberCyan">${st}</span>`;
+            btn.onclick = function() {
+                this.classList.add('bg-cyberCyan/20', 'border-cyberCyan');
+                players[currentTurnIdx].score += 25;
+                updateLeaderboard();
+            };
+            bingoGrid.appendChild(btn);
+        });
+
+        // BROWSER LIVE GPS
+        function enableBrowserGps() {
+            if ("geolocation" in navigator) {
                 navigator.geolocation.watchPosition(
                     (pos) => {
-                        const { latitude, longitude, speed } = pos.coords;
-                        APP_STATE.telemetry.lat = latitude;
-                        APP_STATE.telemetry.lng = longitude;
+                        const lat = pos.coords.latitude;
+                        const lng = pos.coords.longitude;
+                        const speedMph = pos.coords.speed ? Math.round(pos.coords.speed * 2.23694) : 0;
                         
-                        // Convert m/s to mph if speed available
-                        if (speed !== null && !isNaN(speed)) {
-                            APP_STATE.telemetry.speed = speed * 2.23694;
-                        }
+                        document.getElementById('telemetry-speed').innerText = speedMph + ' MPH';
+                        document.getElementById('hud-speed').innerText = speedMph + ' MPH';
+                        document.getElementById('hud-coords').innerText = `${lat.toFixed(3)}, ${lng.toFixed(3)}`;
+                        document.getElementById('telemetry-location').innerText = `LAT: ${lat.toFixed(3)}, LNG: ${lng.toFixed(3)}`;
+                        document.getElementById('telemetry-gps-status').innerHTML = '<i class="fa-solid fa-satellite text-cyberGreen mr-1"></i>GPS LIVE';
 
-                        const newLatLng = [latitude, longitude];
-                        if (carMarker) carMarker.setLatLng(newLatLng);
-                        
-                        routeHistory.push(newLatLng);
-                        if (routePolyline) routePolyline.setLatLngs(routeHistory);
+                        const latLng = [lat, lng];
+                        carMarker.setLatLng(latLng);
+                        map.setView(latLng, 15);
 
-                        reverseGeocode(latitude, longitude);
-                        updateTelemetryDisplay();
+                        routeCoordinates.push(latLng);
+                        routeLine.setLatLngs(routeCoordinates);
                     },
-                    (err) => {
-                        console.warn('GPS Warning:', err.message);
-                    },
-                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 1000 }
+                    (err) => { alert('GPS location access denied or unavailable.'); },
+                    { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
                 );
+                alert('Live GPS tracking connected! Map position locked.');
             }
         }
 
-        function reverseGeocode(lat, lng) {
-            // Approximate local state determination for trivia & HUD
-            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data && data.address) {
-                        const state = data.address.state || data.address.country || 'Indiana';
-                        const city = data.address.city || data.address.town || data.address.county || '';
-                        APP_STATE.telemetry.locationName = city ? `${city}, ${state}` : state;
-                        updateTelemetryDisplay();
-                    }
-                })
-                .catch(() => {});
+        function saveTeslaCredentials() {
+            localStorage.setItem('tesla_token', document.getElementById('tesla-token-input').value);
+            localStorage.setItem('tesla_vin', document.getElementById('tesla-vin-input').value);
+            alert('Tesla credentials saved securely in browser storage!');
         }
 
-        function simulateTelemetrySpeed() {
-            APP_STATE.telemetry.speed = Math.floor(55 + Math.random() * 20);
-            updateTelemetryDisplay();
-        }
+        // INITIALIZE APP & LEAFLET MAP
+        window.onload = function() {
+            updateLeaderboard();
+            renderSpotterList();
 
-        /* ==========================================================================
-           3. SIMULTANEOUS REAL-TIME SPOTTER GAME ENGINE
-           ========================================================================== */
-        function initSpotterGame() {
-            // Fill initial 6 spotter slots with unique random items from master pool
-            const shuffled = [...MASTER_SPOTTER_POOL].sort(() => 0.5 - Math.random());
-            APP_STATE.spotterActiveGrid = shuffled.slice(0, 6);
-            renderSpotterGrid();
-        }
+            const defaultLat = 40.0417;
+            const defaultLng = -86.8986;
 
-        function renderSpotterGrid() {
-            const gridContainer = document.getElementById('spotter-grid');
-            if (!gridContainer) return;
+            map = L.map('map', { zoomControl: false }).setView([defaultLat, defaultLng], 14);
 
-            gridContainer.innerHTML = APP_STATE.spotterActiveGrid.map((item, idx) => `
-                <div id="spotter-card-${idx}" class="glass-panel p-4 rounded-2xl border border-slate-700/80 hover:border-sky-500/50 transition-all duration-300 flex flex-col justify-between space-y-3 group">
-                    <div class="flex items-center justify-between">
-                        <div class="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
-                            <i class="fa-solid ${item.icon}"></i>
-                        </div>
-                        <span class="text-xs font-mono font-bold px-2 py-1 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                            +${item.pts} PTS
-                        </span>
-                    </div>
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+            }).addTo(map);
 
-                    <div>
-                        <h4 class="font-bold text-slate-100 text-sm sm:text-base leading-snug">${item.name}</h4>
-                        <span class="text-[10px] text-slate-400">Roadside Target</span>
-                    </div>
-
-                    <!-- REAL-TIME SPOT BUTTON -->
-                    <button onclick="promptClaimSpotterItem(${idx})" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-bold text-xs sm:text-sm shadow-lg active:scale-95 transition flex items-center justify-center space-x-1.5">
-                        <i class="fa-solid fa-eye"></i>
-                        <span>SPOT!</span>
-                    </button>
-                </div>
-            `).join('');
-        }
-
-        // Open Passenger Picker when ANY passenger taps SPOT
-        function promptClaimSpotterItem(index) {
-            APP_STATE.pendingSpotterIndex = index;
-            const item = APP_STATE.spotterActiveGrid[index];
-            document.getElementById('claim-item-title').innerText = item.name;
-
-            const modalContainer = document.getElementById('claim-passengers-container');
-            modalContainer.innerHTML = APP_STATE.players.map(p => `
-                <button onclick="claimSpotterItemForPlayer(${p.id})" class="w-full py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-left flex items-center justify-between group transition">
-                    <span class="font-bold text-slate-200 text-sm">${p.name}</span>
-                    <span class="text-xs text-emerald-400 font-semibold group-hover:translate-x-1 transition-transform">+${item.pts} PTS &rarr;</span>
-                </button>
-            `).join('');
-
-            openModal('claim-picker-modal');
-        }
-
-        // Execute Claim: ONLY THAT SPECIFIC CARD ANIMATES OUT & IS REPLACED IN PLACE
-        function claimSpotterItemForPlayer(playerId) {
-            closeModal('claim-picker-modal');
-            const idx = APP_STATE.pendingSpotterIndex;
-            if (idx === null || idx === undefined) return;
-
-            const item = APP_STATE.spotterActiveGrid[idx];
-            
-            // 1. Award Points to Player
-            const player = APP_STATE.players.find(p => p.id === playerId);
-            if (player) {
-                player.score += item.pts;
-                renderLeaderboard();
-            }
-
-            // 2. Animate out ONLY that specific card
-            const cardEl = document.getElementById(`spotter-card-${idx}`);
-            if (cardEl) {
-                cardEl.classList.add('animate__animated', 'animate__zoomOut', 'pointer-events-none');
-            }
-
-            // 3. After animation, replace ONLY that item with a new random item from master pool
-            setTimeout(() => {
-                // Get active item IDs to avoid duplicates on screen
-                const currentIds = APP_STATE.spotterActiveGrid.map(i => i.id);
-                const unusedPool = MASTER_SPOTTER_POOL.filter(i => !currentIds.includes(i.id));
-                
-                // Pick random replacement or fallback to pool
-                const newItem = unusedPool.length > 0 
-                    ? unusedPool[Math.floor(Math.random() * unusedPool.length)]
-                    : MASTER_SPOTTER_POOL[Math.floor(Math.random() * MASTER_SPOTTER_POOL.length)];
-
-                // Replace in place
-                APP_STATE.spotterActiveGrid[idx] = newItem;
-
-                // Re-render grid with smooth zoom-in for the new card
-                renderSpotterGrid();
-                const newCardEl = document.getElementById(`spotter-card-${idx}`);
-                if (newCardEl) {
-                    newCardEl.classList.add('animate__animated', 'animate__zoomIn');
-                }
-            }, 300);
-        }
-
-        /* ==========================================================================
-           4. DYNAMIC LOCATION-AWARE TRIVIA ENGINE
-           ========================================================================== */
-        let currentTriviaAnswer = null;
-
-        function fetchLocalTrivia() {
-            // Find current state key or fallback
-            const stateMatch = Object.keys(TRIVIA_DATABASE).find(key => 
-                APP_STATE.telemetry.locationName.includes(key)
-            ) || 'Default';
-
-            const pool = TRIVIA_DATABASE[stateMatch] || TRIVIA_DATABASE['Default'];
-            const randomItem = pool[Math.floor(Math.random() * pool.length)];
-
-            currentTriviaAnswer = randomItem.correct;
-            document.getElementById('trivia-location-tag').innerText = `Active Region: ${stateMatch}`;
-            document.getElementById('trivia-question-text').innerText = randomItem.q;
-
-            const optionsContainer = document.getElementById('trivia-options-container');
-            optionsContainer.innerHTML = randomItem.a.map((opt, i) => `
-                <button onclick="checkTriviaAnswer(${i})" class="w-full text-left p-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-sm font-semibold transition active:scale-98">
-                    ${String.fromCharCode(65 + i)}. ${opt}
-                </button>
-            `).join('');
-        }
-
-        function checkTriviaAnswer(selectedIndex) {
-            const optionsContainer = document.getElementById('trivia-options-container');
-            const buttons = optionsContainer.querySelectorAll('button');
-
-            buttons.forEach((btn, idx) => {
-                btn.disabled = true;
-                if (idx === currentTriviaAnswer) {
-                    btn.className = "w-full text-left p-3.5 rounded-xl bg-emerald-600/30 border border-emerald-500 text-emerald-200 text-sm font-semibold";
-                } else if (idx === selectedIndex) {
-                    btn.className = "w-full text-left p-3.5 rounded-xl bg-rose-600/30 border border-rose-500 text-rose-200 text-sm font-semibold";
-                }
+            const carIcon = L.divIcon({
+                className: 'custom-car-marker',
+                html: '<div style="background-color: #00F0FF; width: 18px; height: 18px; border: 3px solid #FFFFFF; border-radius: 50%; box-shadow: 0 0 15px #00F0FF;"></div>',
+                iconSize: [18, 18],
+                iconAnchor: [9, 9]
             });
 
-            if (selectedIndex === currentTriviaAnswer) {
-                // Award points to first player by default for demonstration
-                if (APP_STATE.players.length > 0) {
-                    APP_STATE.players[0].score += 100;
-                    renderLeaderboard();
-                }
-            }
-
-            setTimeout(() => {
-                fetchLocalTrivia();
-            }, 2500);
-        }
-
-        /* ==========================================================================
-           5. LICENSE PLATE BINGO ENGINE
-           ========================================================================== */
-        function initBingoBoard() {
-            const shuffled = [...US_STATES].sort(() => 0.5 - Math.random());
-            APP_STATE.bingoBoard = shuffled.slice(0, 9).map(state => ({
-                state: state,
-                claimedBy: null
-            }));
-            renderBingoBoard();
-        }
-
-        function renderBingoBoard() {
-            const grid = document.getElementById('bingo-grid');
-            if (!grid) return;
-
-            grid.innerHTML = APP_STATE.bingoBoard.map((tile, idx) => `
-                <button onclick="claimBingoTile(${idx})" class="h-24 sm:h-28 glass-panel rounded-2xl border ${tile.claimedBy ? 'border-emerald-500 bg-emerald-500/20' : 'border-slate-700 hover:border-sky-500/50'} flex flex-col items-center justify-center p-2 text-center transition active:scale-95">
-                    <i class="fa-solid fa-id-card text-lg ${tile.claimedBy ? 'text-emerald-400' : 'text-slate-500'} mb-1"></i>
-                    <span class="font-bold text-xs sm:text-sm text-slate-100">${tile.state}</span>
-                    <span class="text-[10px] ${tile.claimedBy ? 'text-emerald-300 font-bold' : 'text-slate-400'}">${tile.claimedBy ? tile.claimedBy : 'Tap to Spot'}</span>
-                </button>
-            `).join('');
-        }
-
-        function claimBingoTile(index) {
-            if (APP_STATE.bingoBoard[index].claimedBy) return;
-            const p = APP_STATE.players[0]; // First passenger claim toggle
-            APP_STATE.bingoBoard[index].claimedBy = p ? p.name : 'Claimed';
-            if (p) p.score += 75;
-            renderLeaderboard();
-            renderBingoBoard();
-        }
-
-        function resetBingoBoard() {
-            initBingoBoard();
-        }
-
-        /* ==========================================================================
-           6. SPEEDOMETER SWEEP DUEL ENGINE
-           ========================================================================== */
-        function renderSpeedometerInputs() {
-            const container = document.getElementById('speedometer-player-inputs');
-            if (!container) return;
-
-            container.innerHTML = APP_STATE.players.map(p => `
-                <div class="flex items-center justify-between space-x-2">
-                    <span class="text-xs font-semibold text-slate-300 w-28 truncate">${p.name}</span>
-                    <div class="flex items-center space-x-1">
-                        <input type="number" id="speed-pred-${p.id}" placeholder="e.g. 72" class="w-20 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-center font-mono text-sky-400 focus:outline-none focus:border-sky-500">
-                        <span class="text-[10px] text-slate-400">MPH</span>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function startSpeedDuelCountdown() {
-            if (APP_STATE.speedDuel.active) return;
-            
-            // Gather predictions
-            APP_STATE.players.forEach(p => {
-                const input = document.getElementById(`speed-pred-${p.id}`);
-                if (input && input.value) {
-                    APP_STATE.speedDuel.predictions[p.id] = parseFloat(input.value);
-                }
-            });
-
-            APP_STATE.speedDuel.active = true;
-            APP_STATE.speedDuel.countdown = 10;
-            
-            const statusPanel = document.getElementById('speedometer-status-panel');
-            const timerEl = document.getElementById('speedometer-timer');
-            const btn = document.getElementById('btn-start-speed-duel');
-            
-            statusPanel.classList.remove('hidden');
-            btn.disabled = true;
-            btn.classList.add('opacity-50');
-
-            APP_STATE.speedDuel.interval = setInterval(() => {
-                APP_STATE.speedDuel.countdown--;
-                timerEl.innerText = APP_STATE.speedDuel.countdown;
-
-                if (APP_STATE.speedDuel.countdown <= 0) {
-                    clearInterval(APP_STATE.speedDuel.interval);
-                    evaluateSpeedDuel();
-                }
-            }, 1000);
-        }
-
-        function evaluateSpeedDuel() {
-            const actualSpeed = Math.round(APP_STATE.telemetry.speed);
-            let winner = null;
-            let minDiff = Infinity;
-
-            APP_STATE.players.forEach(p => {
-                const pred = APP_STATE.speedDuel.predictions[p.id];
-                if (pred !== undefined) {
-                    const diff = Math.abs(pred - actualSpeed);
-                    if (diff < minDiff) {
-                        minDiff = diff;
-                        winner = p;
-                    }
-                }
-            });
-
-            const resultText = document.getElementById('speedometer-result-text');
-            const btn = document.getElementById('btn-start-speed-duel');
-
-            if (winner) {
-                winner.score += 150;
-                renderLeaderboard();
-                resultText.innerHTML = `<strong>Actual Speed: ${actualSpeed} MPH</strong><br>🎉 ${winner.name} won (+150 PTS) with prediction!`;
-            } else {
-                resultText.innerText = `Actual Speed: ${actualSpeed} MPH. No predictions entered!`;
-            }
-
-            APP_STATE.speedDuel.active = false;
-            btn.disabled = false;
-            btn.classList.remove('opacity-50');
-        }
-
-        /* ==========================================================================
-           7. ROAD TRIP ALPHABET CHAIN DUEL
-           ========================================================================== */
-        const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split('');
-
-        function renderAlphabetChain() {
-            const letterEl = document.getElementById('alphabet-current-letter');
-            if (letterEl) letterEl.innerText = ALPHABET[APP_STATE.alphabet.currentIndex] || 'DONE';
-
-            const buttonsContainer = document.getElementById('alphabet-passenger-buttons');
-            if (buttonsContainer) {
-                buttonsContainer.innerHTML = APP_STATE.players.map(p => `
-                    <button onclick="claimAlphabetLetter(${p.id})" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition">
-                        Claim for ${p.name}
-                    </button>
-                `).join('');
-            }
-        }
-
-        function claimAlphabetLetter(playerId) {
-            const input = document.getElementById('alphabet-word-input');
-            const word = input.value.trim().toUpperCase();
-            const currentLetter = ALPHABET[APP_STATE.alphabet.currentIndex];
-
-            if (!word) {
-                alert('Please type the roadside word or sign you spotted!');
-                return;
-            }
-
-            if (!word.startsWith(currentLetter)) {
-                alert(`Word must start with the letter '${currentLetter}'!`);
-                return;
-            }
-
-            const p = APP_STATE.players.find(player => player.id === playerId);
-            if (p) {
-                p.score += 50;
-                renderLeaderboard();
-            }
-
-            APP_STATE.alphabet.history.unshift({ letter: currentLetter, word: word, player: p ? p.name : 'Unknown' });
-            APP_STATE.alphabet.currentIndex = (APP_STATE.alphabet.currentIndex + 1) % ALPHABET.length;
-            
-            input.value = '';
-            renderAlphabetChain();
-            renderAlphabetHistory();
-        }
-
-        function renderAlphabetHistory() {
-            const historyContainer = document.getElementById('alphabet-history');
-            if (!historyContainer) return;
-
-            historyContainer.innerHTML = APP_STATE.alphabet.history.map(item => `
-                <span class="text-xs px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700 font-mono">
-                    <strong>${item.letter}</strong>: ${item.word} (${item.player})
-                </span>
-            `).join('');
-        }
-
-        /* ==========================================================================
-           8. PASSENGER & LEADERBOARD MANAGEMENT
-           ========================================================================== */
-        function renderLeaderboard() {
-            const bar = document.getElementById('leaderboard-bar');
-            if (!bar) return;
-
-            bar.innerHTML = APP_STATE.players.map(p => `
-                <div class="flex items-center space-x-2 bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-700/60 shrink-0">
-                    <div class="w-2.5 h-2.5 rounded-full bg-emerald-400"></div>
-                    <span class="text-xs font-semibold text-slate-200">${p.name}</span>
-                    <span class="text-xs font-mono font-bold text-amber-400 pl-1">${p.score} PTS</span>
-                </div>
-            `).join('');
-
-            renderModalPlayers();
-        }
-
-        function renderModalPlayers() {
-            const list = document.getElementById('modal-players-list');
-            if (!list) return;
-
-            list.innerHTML = APP_STATE.players.map(p => `
-                <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900 border border-slate-800">
-                    <span class="text-sm font-semibold text-slate-200">${p.name}</span>
-                    <div class="flex items-center space-x-3">
-                        <span class="text-xs font-mono text-amber-400 font-bold">${p.score} PTS</span>
-                        <button onclick="removePassenger(${p.id})" class="text-rose-400 hover:text-rose-300 text-xs p-1">
-                            <i class="fa-solid fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-
-            document.getElementById('player-count-badge').innerText = APP_STATE.players.length;
-        }
-
-        function addPassenger() {
-            const nameInput = document.getElementById('new-player-name');
-            const name = nameInput.value.trim();
-            if (!name) return;
-
-            const newId = Date.now();
-            APP_STATE.players.push({ id: newId, name: name, score: 0 });
-            nameInput.value = '';
-
-            renderLeaderboard();
-            renderSpeedometerInputs();
-            renderAlphabetChain();
-        }
-
-        function removePassenger(id) {
-            APP_STATE.players = APP_STATE.players.filter(p => p.id !== id);
-            renderLeaderboard();
-            renderSpeedometerInputs();
-            renderAlphabetChain();
-        }
-
-        function resetGameScores() {
-            APP_STATE.players.forEach(p => p.score = 0);
-            renderLeaderboard();
-        }
-
-        /* ==========================================================================
-           9. UI TAB SWITCHER & WINDOW CONTROLS
-           ========================================================================== */
-        function switchGameTab(tabName) {
-            APP_STATE.currentGameTab = tabName;
-
-            // Update bottom tab buttons styling
-            document.querySelectorAll('.game-tab').forEach(btn => {
-                btn.className = "game-tab flex-1 min-w-[75px] py-2 px-3 rounded-xl flex flex-col items-center justify-center text-xs font-medium text-slate-400 hover:text-slate-200 transition";
-            });
-
-            const activeBtn = document.getElementById(`tab-${tabName}`);
-            if (activeBtn) {
-                activeBtn.className = "game-tab flex-1 min-w-[75px] py-2 px-3 rounded-xl flex flex-col items-center justify-center text-xs font-medium transition bg-slate-800 text-sky-400 border border-sky-500/30";
-            }
-
-            // Hide all views
-            document.querySelectorAll('.game-view').forEach(view => view.classList.add('hidden'));
-
-            // Title & Icon map
-            const titleMap = {
-                'spotter': { title: 'Roadside Spotter (Simultaneous)', icon: 'fa-binoculars text-emerald-400' },
-                'trivia': { title: 'Dynamic Location Trivia', icon: 'fa-lightbulb text-amber-400' },
-                'bingo': { title: 'License Plate Bingo', icon: 'fa-table-cells text-indigo-400' },
-                'speedometer': { title: 'Speedometer Sweep Duel', icon: 'fa-gauge text-sky-400' },
-                'alphabet': { title: 'Alphabet Chain Duel', icon: 'fa-font text-purple-400' }
-            };
-
-            const info = titleMap[tabName];
-            if (info) {
-                document.getElementById('current-game-title').innerText = info.title;
-                document.getElementById('current-game-icon').className = `fa-solid ${info.icon} text-lg`;
-            }
-
-            // Show selected view
-            const targetView = document.getElementById(`view-${tabName}`);
-            if (targetView) targetView.classList.remove('hidden');
-
-            // Trigger view specific setups
-            if (tabName === 'trivia') fetchLocalTrivia();
-            if (tabName === 'speedometer') renderSpeedometerInputs();
-            if (tabName === 'alphabet') { renderAlphabetChain(); renderAlphabetHistory(); }
-        }
-
-        function toggleWindowMinimize() {
-            const body = document.getElementById('window-body');
-            const leaderboard = document.getElementById('leaderboard-bar');
-            if (body.classList.contains('hidden')) {
-                body.classList.remove('hidden');
-                leaderboard.classList.remove('hidden');
-            } else {
-                body.classList.add('hidden');
-                leaderboard.classList.add('hidden');
-            }
-        }
-
-        // Modal Helpers
-        function openModal(modalId) {
-            document.getElementById(modalId)?.classList.remove('hidden');
-        }
-
-        function closeModal(modalId) {
-            document.getElementById(modalId)?.classList.add('hidden');
-        }
-
-        function toggleGPSMode() {
-            const chk = document.getElementById('toggle-browser-gps');
-            APP_STATE.telemetry.gpsActive = chk.checked;
-        }
-
-        function saveTeslaApiConfig() {
-            const token = document.getElementById('tesla-api-token').value;
-            const vin = document.getElementById('tesla-vin').value;
-            localStorage.setItem('tesla_token', token);
-            localStorage.setItem('tesla_vin', vin);
-            closeModal('tesla-api-modal');
-        }
-
-        /* ==========================================================================
-           10. DRAGGABLE WINDOW HANDLER FOR TESLA TOUCHSCREEN
-           ========================================================================== */
-        function initDraggableWindow() {
-            const windowEl = document.getElementById('game-window');
-            const headerEl = document.getElementById('window-header');
-            
-            let isDragging = false;
-            let startX, startY, initialLeft, initialTop;
-
-            headerEl.addEventListener('mousedown', (e) => {
-                isDragging = true;
-                startX = e.clientX;
-                startY = e.clientY;
-                const rect = windowEl.getBoundingClientRect();
-                initialLeft = rect.left;
-                initialTop = rect.top;
-            });
-
-            document.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
-                const dx = e.clientX - startX;
-                const dy = e.clientY - startY;
-                windowEl.style.position = 'absolute';
-                windowEl.style.left = `${initialLeft + dx}px`;
-                windowEl.style.top = `${initialTop + dy}px`;
-                windowEl.style.margin = '0';
-            });
-
-            document.addEventListener('mouseup', () => { isDragging = false; });
-        }
-
-        /* ==========================================================================
-           11. WINDOW ONLOAD INITIALIZATION
-           ========================================================================== */
-        window.onload = function () {
-            initMap();
-            initSpotterGame();
-            initBingoBoard();
-            renderLeaderboard();
-            initDraggableWindow();
-
-            // Load saved Tesla API config if exists
-            const savedToken = localStorage.getItem('tesla_token');
-            const savedVin = localStorage.getItem('tesla_vin');
-            if (savedToken) document.getElementById('tesla-api-token').value = savedToken;
-            if (savedVin) document.getElementById('tesla-vin').value = savedVin;
+            carMarker = L.marker([defaultLat, defaultLng], { icon: carIcon }).addTo(map);
+            routeLine = L.polyline([], { color: '#FF007F', weight: 4, opacity: 0.9 }).addTo(map);
         };
     </script>
 </body>
 </html>
-```
