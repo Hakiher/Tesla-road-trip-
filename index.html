@@ -128,8 +128,8 @@
         <div class="cyber-panel pointer-events-auto rounded-xl px-4 py-2 flex items-center gap-4 text-xs font-mono font-bold w-full md:w-auto justify-between md:justify-start">
             <div class="flex items-center gap-2 text-cyberCyan tracking-wider">
                 <i class="fa-solid fa-bolt text-cyberYellow animate-pulse"></i>
-                <span>PASSAGE // v4.2</span>
-                <span class="text-[9px] bg-cyberCyan/20 px-1.5 py-0.5 rounded text-cyberCyan border border-cyberCyan/40">VIN & KEY AUTO-CONNECT</span>
+                <span>PASSAGE // v4.3</span>
+                <span class="text-[9px] bg-cyberCyan/20 px-1.5 py-0.5 rounded text-cyberCyan border border-cyberCyan/40">HUD READY</span>
             </div>
             <div class="h-4 w-[1px] bg-cyberCyan/20 hidden sm:block"></div>
             <div class="flex items-center gap-1.5 text-gray-300">
@@ -267,41 +267,9 @@
                     <span id="hud-elevation" class="font-bold text-gray-200 text-xs">-- FT</span>
                 </div>
             </div>
-            <button onclick="enableBrowserGps()" class="cyber-btn w-full bg-cyberGreen text-black font-mono font-bold py-2 rounded-lg text-xs hover:bg-emerald-400 transition shadow-[0_0_15px_rgba(0,255,102,0.3)]">
+            <button onclick="enableBrowserGps()" class="cyber-btn w-full bg-cyberGreen text-black font-mono font-bold py-2.5 rounded-lg text-xs hover:bg-emerald-400 transition shadow-[0_0_15px_rgba(0,255,102,0.3)]">
                 <i class="fa-solid fa-satellite-dish mr-1"></i> ACTIVATE LIVE CAR GPS
             </button>
-        </div>
-    </div>
-
-    <!-- WINDOW 6: SIMPLIFIED TESLA API CONNECT (VIN & KEY ONLY) -->
-    <div id="win-verify-api" class="absolute top-[320px] right-3 z-20 w-[90vw] md:w-[360px] cyber-panel rounded-2xl flex flex-col">
-        <div class="window-drag-header px-4 py-3 border-b border-cyberCyan/20 flex items-center justify-between bg-black/60 rounded-t-2xl" onmousedown="dragStart(event, 'win-verify-api')" ontouchstart="dragStart(event, 'win-verify-api')">
-            <div class="flex items-center gap-2">
-                <i class="fa-solid fa-grip-vertical text-cyberCyan/60 text-xs mr-1"></i>
-                <i class="fa-solid fa-key text-cyberCyan"></i>
-                <span class="text-xs font-mono font-bold uppercase tracking-widest text-cyberCyan">TESLA CONNECT (VIN + KEY)</span>
-            </div>
-            <button onclick="toggleWindow('win-verify-api')" class="text-gray-400 hover:text-white p-1 rounded cyber-btn">
-                <i class="fa-solid fa-xmark text-xs"></i>
-            </button>
-        </div>
-        <div class="p-4 space-y-3 text-xs font-mono">
-            <div class="space-y-2">
-                <div>
-                    <label class="text-[10px] text-gray-400 uppercase">VEHICLE VIN:</label>
-                    <input id="tesla-vin-input" type="text" placeholder="e.g. 5YJ3E1EA3NF302557" class="w-full bg-black/60 border border-white/10 rounded-lg px-3 py-2 text-xs text-cyberCyan uppercase font-mono">
-                </div>
-                <div>
-                    <label class="text-[10px] text-gray-400 uppercase">TESLA KEY / API TOKEN:</label>
-                    <input id="tesla-token-input" type="password" placeholder="e.g. eyJhbGciOi..." class="w-full bg-black/60 border border-white/10 rounded-lg px-3 py-2 text-xs text-white font-mono">
-                </div>
-            </div>
-            <button onclick="connectTeslaKeyAndVin()" class="cyber-btn w-full bg-cyberCyan text-black font-mono font-bold py-2.5 rounded-lg hover:bg-cyan-300 transition shadow-[0_0_15px_rgba(0,240,255,0.4)]">
-                <i class="fa-solid fa-plug mr-1"></i> SAVE & VERIFY CONNECTION
-            </button>
-            <div id="diag-console" class="p-3 bg-black/80 rounded-xl border border-cyberCyan/20 text-[10px] text-cyberCyan h-28 overflow-y-auto font-mono space-y-1">
-                <div>[SYSTEM]: Enter VIN and Key to connect.</div>
-            </div>
         </div>
     </div>
 
@@ -317,23 +285,20 @@
 
     <!-- BOTTOM TASKBAR LAUNCHER -->
     <div class="absolute bottom-4 left-4 right-4 z-30 flex items-center justify-center gap-2 flex-wrap">
-        <button onclick="toggleWindow('win-players')" class="cyber-panel px-3 py-2 rounded-xl text-xs font-mono font-bold text-cyberCyan flex items-center gap-1.5 border border-cyberCyan/40 cyber-btn">
+        <button onclick="toggleWindow('win-players')" class="cyber-panel px-3.5 py-2 rounded-xl text-xs font-mono font-bold text-cyberCyan flex items-center gap-1.5 border border-cyberCyan/40 cyber-btn">
             <i class="fa-solid fa-users"></i><span>PLAYERS</span>
         </button>
-        <button onclick="toggleWindow('win-trivia')" class="cyber-panel px-3 py-2 rounded-xl text-xs font-mono font-bold text-cyberYellow flex items-center gap-1.5 border border-cyberYellow/40 cyber-btn">
+        <button onclick="toggleWindow('win-trivia')" class="cyber-panel px-3.5 py-2 rounded-xl text-xs font-mono font-bold text-cyberYellow flex items-center gap-1.5 border border-cyberYellow/40 cyber-btn">
             <i class="fa-solid fa-bolt"></i><span>TRIVIA</span>
         </button>
-        <button onclick="toggleWindow('win-bingo')" class="cyber-panel px-3 py-2 rounded-xl text-xs font-mono font-bold text-cyberCyan flex items-center gap-1.5 border border-cyberCyan/40 cyber-btn">
+        <button onclick="toggleWindow('win-bingo')" class="cyber-panel px-3.5 py-2 rounded-xl text-xs font-mono font-bold text-cyberCyan flex items-center gap-1.5 border border-cyberCyan/40 cyber-btn">
             <i class="fa-solid fa-border-all"></i><span>BINGO</span>
         </button>
-        <button onclick="toggleWindow('win-spotter')" class="cyber-panel px-3 py-2 rounded-xl text-xs font-mono font-bold text-cyberMagenta flex items-center gap-1.5 border border-cyberMagenta/40 cyber-btn">
+        <button onclick="toggleWindow('win-spotter')" class="cyber-panel px-3.5 py-2 rounded-xl text-xs font-mono font-bold text-cyberMagenta flex items-center gap-1.5 border border-cyberMagenta/40 cyber-btn">
             <i class="fa-solid fa-eye"></i><span>SPOTTER</span>
         </button>
-        <button onclick="toggleWindow('win-telemetry-hud')" class="cyber-panel px-3 py-2 rounded-xl text-xs font-mono font-bold text-cyberGreen flex items-center gap-1.5 border border-cyberGreen/40 cyber-btn">
+        <button onclick="toggleWindow('win-telemetry-hud')" class="cyber-panel px-3.5 py-2 rounded-xl text-xs font-mono font-bold text-cyberGreen flex items-center gap-1.5 border border-cyberGreen/40 cyber-btn">
             <i class="fa-solid fa-gauge-high"></i><span>HUD</span>
-        </button>
-        <button onclick="toggleWindow('win-verify-api')" class="cyber-panel px-3 py-2 rounded-xl text-xs font-mono font-bold text-cyberCyan flex items-center gap-1.5 border border-cyberCyan/40 cyber-btn">
-            <i class="fa-solid fa-key"></i><span>CONNECT API</span>
         </button>
     </div>
 
@@ -592,75 +557,11 @@
             }
         }
 
-        // SIMPLIFIED VIN + KEY AUTO CONNECT WITH CORS PROXY
-        function logDiag(msg) {
-            const consoleBox = document.getElementById('diag-console');
-            const div = document.createElement('div');
-            div.innerText = msg;
-            consoleBox.appendChild(div);
-            consoleBox.scrollTop = consoleBox.scrollHeight;
-        }
-
-        async function connectTeslaKeyAndVin() {
-            const vin = document.getElementById('tesla-vin-input').value.trim().toUpperCase();
-            const key = document.getElementById('tesla-token-input').value.trim();
-
-            if (!vin || !key) {
-                alert('Please enter both your VIN and Tesla Key / API Token.');
-                return;
-            }
-
-            localStorage.setItem('tesla_vin', vin);
-            localStorage.setItem('tesla_token', key);
-            logDiag(`[SAVE]: VIN (${vin}) and Key stored.`);
-
-            // Proxy endpoint to bypass browser CORS restriction
-            const targetUrl = `https://fleet-api.prd.na.vn.cloud.tesla.com/api/1/vehicles/${vin}/vehicle_data`;
-            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
-
-            logDiag('[CONNECT]: Attempting proxy connection...');
-
-            try {
-                const response = await fetch(proxyUrl, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${key}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    logDiag('[SUCCESS]: Connected to Tesla Fleet API!');
-                    
-                    if (data.response && data.response.drive_state) {
-                        const drive = data.response.drive_state;
-                        const speed = drive.speed || 0;
-                        const gear = drive.shift_state || 'P';
-                        document.getElementById('hud-speed').innerText = `${speed} MPH`;
-                        document.getElementById('hud-gear').innerText = gear;
-                        logDiag(`[TELEMETRY]: Speed: ${speed} MPH | Shift: ${gear}`);
-                    }
-                } else {
-                    logDiag(`[API WARN]: Response code ${response.status}. Falling back to Browser GPS.`);
-                    enableBrowserGps();
-                }
-            } catch (err) {
-                logDiag('[CORS PROXY BYPASS]: Fetch failed. Live Browser GPS active.');
-                enableBrowserGps();
-            }
-        }
-
         // INITIALIZE APP & LEAFLET MAP
         window.onload = function() {
             updateLeaderboard();
             renderSpotterList();
             renderTriviaQuestion();
-
-            const savedTok = localStorage.getItem('tesla_token');
-            const savedVin = localStorage.getItem('tesla_vin');
-            if (savedTok) document.getElementById('tesla-token-input').value = savedTok;
-            if (savedVin) document.getElementById('tesla-vin-input').value = savedVin;
 
             const defaultLat = 40.0417;
             const defaultLng = -86.8986;
