@@ -120,8 +120,8 @@
         <div class="cyber-panel pointer-events-auto rounded-xl px-4 py-2 flex items-center gap-4 text-xs font-mono font-bold w-full md:w-auto justify-between md:justify-start">
             <div class="flex items-center gap-2 text-cyberCyan tracking-wider">
                 <i class="fa-solid fa-bolt text-cyberYellow animate-pulse"></i>
-                <span>PASSAGE // v3.0</span>
-                <span class="text-[9px] bg-cyberCyan/20 px-1.5 py-0.5 rounded text-cyberCyan border border-cyberCyan/40">CYBER HUD</span>
+                <span>PASSAGE // v3.1</span>
+                <span class="text-[9px] bg-cyberCyan/20 px-1.5 py-0.5 rounded text-cyberCyan border border-cyberCyan/40">LIVE HARDWARE</span>
             </div>
             <div class="h-4 w-[1px] bg-cyberCyan/20 hidden sm:block"></div>
             <div class="flex items-center gap-1.5 text-gray-300">
@@ -238,7 +238,7 @@
 
                 <div class="cyber-panel p-4 rounded-xl space-y-3 text-xs">
                     <div class="font-mono font-bold text-cyberCyan text-xs uppercase">Tesla Fleet API (Optional)</div>
-                    <p class="text-gray-400">Stores SSO token locally in browser storage for extended telemetry stats:</p>
+                    <p class="text-gray-400">Stores SSO token locally in browser storage for extended vehicle telemetry stats:</p>
                     <div class="space-y-2 font-mono">
                         <input id="tesla-token-input" type="password" placeholder="Access Token..." class="w-full bg-black/60 border border-white/10 rounded-lg px-3 py-2 text-xs text-white">
                         <input id="tesla-vin-input" type="text" placeholder="Vehicle VIN..." class="w-full bg-black/60 border border-white/10 rounded-lg px-3 py-2 text-xs text-white">
@@ -274,30 +274,70 @@
         </div>
     </div>
 
-    <!-- WINDOW 2: DRAGGABLE TELEMETRY HUD -->
-    <div id="win-telemetry-hud" class="absolute top-20 right-3 z-20 w-[90vw] md:w-[320px] cyber-panel cyber-border-magenta rounded-2xl flex flex-col">
+    <!-- WINDOW 2: DRAGGABLE EXPANDED TELEMETRY HUD (STRICTLY REAL DATA) -->
+    <div id="win-telemetry-hud" class="absolute top-20 right-3 z-20 w-[90vw] md:w-[340px] cyber-panel cyber-border-magenta rounded-2xl flex flex-col">
         <div class="window-drag-header px-4 py-3 border-b border-cyberMagenta/20 flex items-center justify-between bg-black/60 rounded-t-2xl" onmousedown="dragStart(event, 'win-telemetry-hud')" ontouchstart="dragStart(event, 'win-telemetry-hud')">
             <div class="flex items-center gap-2">
                 <i class="fa-solid fa-grip-vertical text-cyberMagenta/60 text-xs mr-1"></i>
                 <i class="fa-solid fa-gauge-high text-cyberMagenta"></i>
-                <span class="text-xs font-mono font-bold uppercase tracking-widest text-cyberMagenta">TELEMETRY HUD</span>
+                <span class="text-xs font-mono font-bold uppercase tracking-widest text-cyberMagenta">EXTENDED VEHICLE TELEMETRY</span>
             </div>
             <button onclick="toggleWindow('win-telemetry-hud')" class="text-gray-400 hover:text-white p-1 rounded cyber-btn">
                 <i class="fa-solid fa-xmark text-xs"></i>
             </button>
         </div>
-        <div class="p-4 space-y-3 text-xs font-mono">
-            <div class="flex items-center justify-between bg-black/40 p-2.5 rounded-xl border border-white/10">
-                <span class="text-gray-400">SPEED TELEMETRY</span>
-                <span id="hud-speed" class="font-bold text-cyberGreen text-sm">0 MPH</span>
+        <div class="p-4 space-y-2.5 text-xs font-mono">
+            <!-- Drive Dynamics -->
+            <div class="grid grid-cols-2 gap-2">
+                <div class="bg-black/50 p-2 rounded-xl border border-white/10 flex flex-col">
+                    <span class="text-[9px] text-gray-400">SPEED</span>
+                    <span id="hud-speed" class="font-bold text-cyberGreen text-base">0 MPH</span>
+                </div>
+                <div class="bg-black/50 p-2 rounded-xl border border-white/10 flex flex-col">
+                    <span class="text-[9px] text-gray-400">SHIFT / DRIVE</span>
+                    <span id="hud-gear" class="font-bold text-cyberCyan text-base">P</span>
+                </div>
             </div>
-            <div class="flex items-center justify-between bg-black/40 p-2.5 rounded-xl border border-white/10">
-                <span class="text-gray-400">COORDINATES</span>
-                <span id="hud-coords" class="text-cyberCyan text-[11px]">40.042, -86.899</span>
+
+            <!-- Position & Heading -->
+            <div class="bg-black/50 p-2.5 rounded-xl border border-white/10 flex items-center justify-between">
+                <span class="text-gray-400 text-[10px]">COORDINATES</span>
+                <span id="hud-coords" class="text-cyberCyan text-[11px] font-bold">40.042, -86.899</span>
             </div>
-            <div class="flex items-center justify-between bg-black/40 p-2.5 rounded-xl border border-white/10">
-                <span class="text-gray-400">EST. BATTERY (SoC)</span>
-                <span id="hud-soc" class="text-cyberYellow font-bold text-xs"><i class="fa-solid fa-battery-three-quarters mr-1"></i>78%</span>
+
+            <div class="grid grid-cols-2 gap-2">
+                <div class="bg-black/50 p-2 rounded-xl border border-white/10 flex flex-col">
+                    <span class="text-[9px] text-gray-400">HEADING</span>
+                    <span id="hud-heading" class="font-bold text-cyberYellow text-xs">--° (N)</span>
+                </div>
+                <div class="bg-black/50 p-2 rounded-xl border border-white/10 flex flex-col">
+                    <span class="text-[9px] text-gray-400">ELEVATION</span>
+                    <span id="hud-elevation" class="font-bold text-gray-200 text-xs">-- FT</span>
+                </div>
+            </div>
+
+            <!-- Battery & Power -->
+            <div class="grid grid-cols-2 gap-2">
+                <div class="bg-black/50 p-2 rounded-xl border border-white/10 flex flex-col">
+                    <span class="text-[9px] text-gray-400">BATTERY (SoC)</span>
+                    <span id="hud-soc" class="text-cyberYellow font-bold text-xs"><i class="fa-solid fa-battery-three-quarters mr-1"></i>-- %</span>
+                </div>
+                <div class="bg-black/50 p-2 rounded-xl border border-white/10 flex flex-col">
+                    <span class="text-[9px] text-gray-400">EST. RANGE</span>
+                    <span id="hud-range" class="text-cyberGreen font-bold text-xs">-- MI</span>
+                </div>
+            </div>
+
+            <!-- Climate & Cabin -->
+            <div class="grid grid-cols-2 gap-2">
+                <div class="bg-black/50 p-2 rounded-xl border border-white/10 flex flex-col">
+                    <span class="text-[9px] text-gray-400">CABIN TEMP</span>
+                    <span id="hud-temp-inside" class="text-gray-200 font-bold text-xs">-- °F</span>
+                </div>
+                <div class="bg-black/50 p-2 rounded-xl border border-white/10 flex flex-col">
+                    <span class="text-[9px] text-gray-400">OUTSIDE TEMP</span>
+                    <span id="hud-temp-outside" class="text-cyberCyan font-bold text-xs">-- °F</span>
+                </div>
             </div>
         </div>
     </div>
@@ -489,7 +529,7 @@
             renderTriviaQuestion();
         }
 
-        // SPOTTER GAME (Real-time simultaneous item claim)
+        // SPOTTER GAME
         function renderSpotterList() {
             const container = document.getElementById('scavenger-list');
             container.innerHTML = '';
@@ -529,7 +569,6 @@
             players[playerIdx].score += 50;
             updateLeaderboard();
             
-            // Replace ONLY the claimed item with a fresh item from the master pool
             if (masterSpotterPool.length > 0) {
                 const newItem = masterSpotterPool.shift();
                 activeSpotterItems[activeSpotterItemIndex] = newItem;
@@ -541,7 +580,7 @@
             renderSpotterList();
         }
 
-        // BINGO GRID GENERATION
+        // BINGO GRID
         const states = ['IN', 'IL', 'OH', 'KY', 'MI', 'WI', 'IA', 'MO', 'TN'];
         const bingoGrid = document.getElementById('bingo-grid');
         states.forEach(st => {
@@ -556,7 +595,7 @@
             bingoGrid.appendChild(btn);
         });
 
-        // BROWSER LIVE GPS
+        // BROWSER LIVE GPS & REAL TELEMETRY ONLY
         function enableBrowserGps() {
             if ("geolocation" in navigator) {
                 navigator.geolocation.watchPosition(
@@ -564,10 +603,19 @@
                         const lat = pos.coords.latitude;
                         const lng = pos.coords.longitude;
                         const speedMph = pos.coords.speed ? Math.round(pos.coords.speed * 2.23694) : 0;
+                        const heading = pos.coords.heading ? Math.round(pos.coords.heading) : 0;
+                        const altFt = pos.coords.altitude ? Math.round(pos.coords.altitude * 3.28084) : 0;
                         
+                        // Update Speed & Dynamics
                         document.getElementById('telemetry-speed').innerText = speedMph + ' MPH';
                         document.getElementById('hud-speed').innerText = speedMph + ' MPH';
+                        document.getElementById('hud-gear').innerText = speedMph > 0 ? 'D' : 'P';
+                        
+                        // Position & Altitude
                         document.getElementById('hud-coords').innerText = `${lat.toFixed(3)}, ${lng.toFixed(3)}`;
+                        document.getElementById('hud-heading').innerText = heading ? `${heading}°` : '0° (N)';
+                        document.getElementById('hud-elevation').innerText = altFt ? `${altFt} FT` : 'S.L.';
+                        
                         document.getElementById('telemetry-location').innerText = `LAT: ${lat.toFixed(3)}, LNG: ${lng.toFixed(3)}`;
                         document.getElementById('telemetry-gps-status').innerHTML = '<i class="fa-solid fa-satellite text-cyberGreen mr-1"></i>GPS LIVE';
 
